@@ -1,0 +1,14 @@
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 6\First List\bin\Debug\First List.exe.config
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 6\First List\bin\Debug\First List.exe
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 6\First List\bin\Debug\First List.pdb
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 6\First List\obj\Debug\First List.csprojAssemblyReference.cache
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 6\First List\obj\Debug\First List.csproj.CoreCompileInputs.cache
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 6\First List\obj\Debug\First List.exe
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 6\First List\obj\Debug\First List.pdb
+D:\School\Programs\ETEC 4401 Compiler\Assignment 6\First List\bin\Debug\First List.exe.config
+D:\School\Programs\ETEC 4401 Compiler\Assignment 6\First List\bin\Debug\First List.exe
+D:\School\Programs\ETEC 4401 Compiler\Assignment 6\First List\bin\Debug\First List.pdb
+D:\School\Programs\ETEC 4401 Compiler\Assignment 6\First List\obj\Debug\First List.csprojAssemblyReference.cache
+D:\School\Programs\ETEC 4401 Compiler\Assignment 6\First List\obj\Debug\First List.csproj.CoreCompileInputs.cache
+D:\School\Programs\ETEC 4401 Compiler\Assignment 6\First List\obj\Debug\First List.exe
+D:\School\Programs\ETEC 4401 Compiler\Assignment 6\First List\obj\Debug\First List.pdb

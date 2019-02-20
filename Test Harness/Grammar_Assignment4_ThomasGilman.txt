@@ -1,0 +1,17 @@
+NUM -> -?\d+
+ID -> [a-z]+
+ADDOP -> [-+]
+MULOP -> [*/]
+RELOP -> [<>]=?
+OR -> [|][|]
+AND -> &&
+LPAREN -> [(]
+RPAREN -> [)]
+
+statement -> relation | sum | boolOr
+boolOr -> boolOr OR boolAnd | boolAnd OR boolAnd | boolAnd
+boolAnd -> boolAnd AND relation | relation AND relation | relation
+relation -> sum RELOP sum
+sum -> sum ADDOP product | product
+product -> product MULOP factor | factor
+factor -> NUM | ID | LPAREN sum RPAREN

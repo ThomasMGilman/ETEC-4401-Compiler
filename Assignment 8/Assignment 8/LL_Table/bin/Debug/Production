@@ -1,0 +1,7 @@
+S -> B C D e S`
+A ->  x | C y
+B ->  D C | q
+C -> D C` | w C`
+D ->  b | lambda
+S` -> a S` | lambda | A b B S`
+C` -> z C` | lambda

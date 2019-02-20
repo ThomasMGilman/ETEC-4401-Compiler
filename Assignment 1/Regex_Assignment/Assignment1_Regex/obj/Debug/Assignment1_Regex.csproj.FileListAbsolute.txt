@@ -1,0 +1,21 @@
+D:\SchoolAndProjects\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\bin\Debug\Assignment1_Regex.exe.config
+D:\SchoolAndProjects\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\bin\Debug\Assignment1_Regex.exe
+D:\SchoolAndProjects\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\bin\Debug\Assignment1_Regex.pdb
+D:\SchoolAndProjects\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.csprojAssemblyReference.cache
+D:\SchoolAndProjects\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.csproj.CoreCompileInputs.cache
+D:\SchoolAndProjects\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.exe
+D:\SchoolAndProjects\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.pdb
+D:\School\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\bin\Debug\Assignment1_Regex.exe.config
+D:\School\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\bin\Debug\Assignment1_Regex.exe
+D:\School\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\bin\Debug\Assignment1_Regex.pdb
+D:\School\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.csprojAssemblyReference.cache
+D:\School\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.csproj.CoreCompileInputs.cache
+D:\School\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.exe
+D:\School\Programs\Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.pdb
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\bin\Debug\Assignment1_Regex.exe.config
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\bin\Debug\Assignment1_Regex.exe
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\bin\Debug\Assignment1_Regex.pdb
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.csprojAssemblyReference.cache
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.csproj.CoreCompileInputs.cache
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.exe
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 1\Regex_Assignment\Assignment1_Regex\obj\Debug\Assignment1_Regex.pdb

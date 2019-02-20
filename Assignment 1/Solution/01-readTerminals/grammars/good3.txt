@@ -1,0 +1,4 @@
+ID -> \w+
+ARROW -> ->
+NULL -> null
+

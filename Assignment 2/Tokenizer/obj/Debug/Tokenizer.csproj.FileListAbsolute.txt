@@ -1,0 +1,7 @@
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 2\Tokenizer\obj\Debug\Tokenizer.csprojAssemblyReference.cache
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 2\Tokenizer\obj\Debug\Tokenizer.csproj.CoreCompileInputs.cache
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 2\Tokenizer\bin\Debug\Tokenizer.exe.config
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 2\Tokenizer\bin\Debug\Tokenizer.exe
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 2\Tokenizer\bin\Debug\Tokenizer.pdb
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 2\Tokenizer\obj\Debug\Tokenizer.exe
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 2\Tokenizer\obj\Debug\Tokenizer.pdb

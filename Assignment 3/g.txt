@@ -1,0 +1,18 @@
+ADDOP -> [-+]
+MULOP -> [*/]
+NUM -> \d+
+LP -> [(]
+RP -> [)]
+EQ -> =
+COMMENT -> (?s)[{].*?[}]
+ID -> \w+
+
+
+S -> expr 
+expr -> term expr'
+expr' -> ADDOP term expr' | lambda
+term -> factor term'
+term' -> MULOP factor term' | lambda
+factor -> id_or_func_call | NUM | LP expr RP
+id_or_func_call -> ID id_or_func_call'
+id_or_func_call' -> lambda | LP RP

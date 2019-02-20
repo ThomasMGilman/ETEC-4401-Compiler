@@ -1,0 +1,16 @@
+a -> a
+b -> b
+e -> e
+x -> x
+y -> y
+q -> q
+w -> w
+z -> z
+
+S -> a |A b B | B C D e
+A -> x | C y
+B -> D C | q
+C -> D | w | C z
+D -> b | lambda
+
+

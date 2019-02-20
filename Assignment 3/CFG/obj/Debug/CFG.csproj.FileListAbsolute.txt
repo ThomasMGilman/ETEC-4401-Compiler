@@ -1,0 +1,14 @@
+C:\Users\Thoma\source\repos\Assignment 3\CFG\bin\Debug\CFG.exe.config
+C:\Users\Thoma\source\repos\Assignment 3\CFG\bin\Debug\CFG.exe
+C:\Users\Thoma\source\repos\Assignment 3\CFG\bin\Debug\CFG.pdb
+C:\Users\Thoma\source\repos\Assignment 3\CFG\obj\Debug\CFG.csprojAssemblyReference.cache
+C:\Users\Thoma\source\repos\Assignment 3\CFG\obj\Debug\CFG.csproj.CoreCompileInputs.cache
+C:\Users\Thoma\source\repos\Assignment 3\CFG\obj\Debug\CFG.exe
+C:\Users\Thoma\source\repos\Assignment 3\CFG\obj\Debug\CFG.pdb
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 3\CFG\bin\Debug\CFG.exe.config
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 3\CFG\bin\Debug\CFG.exe
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 3\CFG\bin\Debug\CFG.pdb
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 3\CFG\obj\Debug\CFG.csprojAssemblyReference.cache
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 3\CFG\obj\Debug\CFG.csproj.CoreCompileInputs.cache
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 3\CFG\obj\Debug\CFG.exe
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 3\CFG\obj\Debug\CFG.pdb

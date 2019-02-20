@@ -1,0 +1,11 @@
+ADDOP -> [-+]
+MULOP -> [*/]
+NUM -> \d+
+LP -> [(]
+RP -> [)]
+ID -> \w+
+, -> ,
+
+
+S -> ID LP param-list RP
+param-list -> ID | ID , ID | ID , ID , ID | ID , ID , ID , ID  | ID , ID , ID , ID , ID

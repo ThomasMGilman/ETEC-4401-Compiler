@@ -1,0 +1,7 @@
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 8\Assignment 8\LL_Table\bin\Debug\LL_Table.exe.config
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 8\Assignment 8\LL_Table\bin\Debug\LL_Table.exe
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 8\Assignment 8\LL_Table\bin\Debug\LL_Table.pdb
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 8\Assignment 8\LL_Table\obj\Debug\LL_Table.csprojAssemblyReference.cache
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 8\Assignment 8\LL_Table\obj\Debug\LL_Table.csproj.CoreCompileInputs.cache
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 8\Assignment 8\LL_Table\obj\Debug\LL_Table.exe
+D:\SchoolAndProjects\Programs\ETEC 4401 Compiler\Assignment 8\Assignment 8\LL_Table\obj\Debug\LL_Table.pdb

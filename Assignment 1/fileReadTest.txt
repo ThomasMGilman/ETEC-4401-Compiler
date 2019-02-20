@@ -1,0 +1,10 @@
+ONE->aa(b|a)c
+TWO->aa*
+THREE->b+
+FOUR->aaaabbbaba
+FIVE->larry|Ross
+SIX->carry|BOB
+SEVEN->llalalaa
+SEVEN->llalalaa
+EIGHT->*
+NINE  ->adho1n.
