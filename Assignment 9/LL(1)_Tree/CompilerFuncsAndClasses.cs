@@ -73,7 +73,7 @@ public class TreeNode
 
 public class compiler
 {
-    private string grammarFile;
+    private string grammarFile, inputFile;
     static private string[] grammarLines;
     static private Regex middle;
     static private List<Terminal> terminals;
@@ -84,10 +84,11 @@ public class compiler
     static private Dictionary<string, Dictionary<string, HashSet<string>>> LLTable;
     static private int currentLineNum;
 
-    public compiler(string grammarFile)
+    public compiler(string grammarFile, string inputFile = null)
     {
         //initiallize all the class globals
         this.grammarFile = grammarFile;
+        this.inputFile = inputFile;
         grammarLines = System.IO.File.ReadAllLines(@grammarFile);
         middle = new Regex(@"->");
         terminals = new List<Terminal>();
@@ -106,11 +107,12 @@ public class compiler
         computeTable();
 
         //Test Prints
-        //printTerminals();
-        //printProductions();
-        //printFirsts();
-        //printFollows();
-        //printNullableSet();
+        printTerminals();
+        printProductions();
+        printFirsts();
+        printFollows();
+        printNullableSet();
+        printTable();
     }
     private void setTerminals()
     {
@@ -263,8 +265,12 @@ public class compiler
     {
         return nullables;
     }
-    public HashSet<TreeNode> getTree()
+    public Stack<TreeNode> getTree()
     {
+        if(this.inputFile == null)
+            throw new Exception("Compiler needs both a Grammar File and an Input File!");
+
+        string[] inputCode = File.ReadAllLines(this.inputFile);
         return null;
     }
     public Dictionary<string, HashSet<string>> getFirsts()
@@ -430,6 +436,15 @@ public class compiler
                 Console.WriteLine(" ]");
         }
         Console.WriteLine();
+    }
+    public void printTable()
+    {
+        Console.WriteLine("LL(1) Table:");
+        foreach(KeyValuePair<string, Dictionary<string, HashSet<string>>> nonterminal in LLTable)
+        {
+            foreach(KeyValuePair<string, HashSet<string>> terminal in LLTable[nonterminal.Key])
+                Console.WriteLine("\t{0} , {1} ::= {2}", nonterminal.Key, terminal.Key, LLTable[nonterminal.Key][terminal.Key].First());
+        }
     }
     private void computeNullables()
     {
@@ -715,7 +730,7 @@ public class compiler
         HashSet<string> Product = new HashSet<string>();
         if (production.Length > 0)
         {
-            string[] terms = production.Trim().Split();
+            string[] terms = production.Trim().Split(' ');
             foreach(string term in terms)
                 Product.Add(term);
         }
@@ -726,12 +741,17 @@ public class compiler
         foreach (Production p in productions)
         {
             Dictionary<string, HashSet<string>> entry = new Dictionary<string, HashSet<string>>();
+            
             foreach (string production in p.productions)
             {
                 foreach (string s in findFirst(production, p))
                 {
                     if (!entry.ContainsKey(s))
-                        entry.Add(s, getProductionAsHash(production));
+                    {
+                        HashSet<string> productions = new HashSet<string>();
+                        productions.Add(production);
+                        entry.Add(s, productions);
+                    }
                     else
                     {
                         //entry[s].Add("| " + production);
@@ -775,9 +795,9 @@ public class Compiler
         compiler c = new compiler(gFile);
         return c.getTable();
     }
-    public static HashSet<TreeNode> parse(string gFile, string iFile)
+    public static Stack<TreeNode> parse(string gFile, string iFile)
     {
-        compiler c = new compiler(gFile);
+        compiler c = new compiler(gFile, iFile);
         return c.getTree();
     }
 }

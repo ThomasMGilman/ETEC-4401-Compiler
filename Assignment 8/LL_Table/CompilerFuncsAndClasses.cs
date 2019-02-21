@@ -715,7 +715,11 @@ public class compiler
                 foreach (string s in findFirst(production, p))
                 {
                     if (!entry.ContainsKey(s))
-                        entry.Add(s, getProductionAsHash(production));
+                    {
+                        HashSet<string> productions = new HashSet<string>();
+                        productions.Add(production);
+                        entry.Add(s, productions);
+                    }
                     else
                     {
                         //entry[s].Add("| " + production);
