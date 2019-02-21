@@ -3,6 +3,7 @@
 //ETEC 4401 Compiler
 // 12th February, 2019
 using System;
+using System.Text;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Linq;
@@ -12,6 +13,24 @@ public struct Terminal
 {
     public string terminal;
     public Regex nonTerminal;
+}
+
+public class Token
+{
+    public string sym;
+    public string lexeme;
+    public int line;
+    public Token(string sym, string lexeme, int line)
+    {
+        this.sym = sym;
+        this.lexeme = lexeme;
+        this.line = line;
+    }
+    public override string ToString()
+    {
+        return string.Format("[{0,10} {1,4} {2,25}]",
+            this.sym, this.line, this.lexeme);
+    }
 }
 
 public struct longestProduction
@@ -77,7 +96,9 @@ public class compiler
     static private string[] grammarLines;
     static private Regex middle;
     static private List<Terminal> terminals;
+    static private List<Token> tokens;
     static private List<Production> productions;
+    static private List<TreeNode> productionTree;
     static private HashSet<string> nullables;
     static private Dictionary<string, Production> productionDict;
     static private Dictionary<string, HashSet<string>> Follows;
@@ -90,21 +111,36 @@ public class compiler
         this.grammarFile = grammarFile;
         this.inputFile = inputFile;
         grammarLines = System.IO.File.ReadAllLines(@grammarFile);
-        middle = new Regex(@"->");
-        terminals = new List<Terminal>();
-        productions = new List<Production>();
-        nullables = new HashSet<string>();
-        productionDict = new Dictionary<string, Production>();
-        Follows = new Dictionary<string, HashSet<string>>();
-        LLTable = new Dictionary<string, Dictionary<string, HashSet<string>>>();
-        currentLineNum = 0;
+        middle          = new Regex(@"->");
+        terminals       = new List<Terminal>();
+        tokens          = new List<Token>();
+        productions     = new List<Production>();
+        productionTree  = new List<TreeNode>();
+        nullables       = new HashSet<string>();
+        productionDict  = new Dictionary<string, Production>();
+        Follows         = new Dictionary<string, HashSet<string>>();
+        LLTable         = new Dictionary<string, Dictionary<string, HashSet<string>>>();
+        currentLineNum  = 0;
 
         //compiler tasks, must do in order
-        setTerminals();
-        computeNullables();
-        computeAllFirsts();
-        computeFollows();
-        computeTable();
+        if (this.grammarFile != null)
+        {
+            setTerminals();
+            computeNullables();
+            computeAllFirsts();
+            computeFollows();
+            computeTable();
+        }
+        else
+            throw new Exception("ERROR!!!! Did not pass a Grammar File!!");
+
+        if (this.inputFile != null)
+        {
+            TokenizeInputFile();
+            computeTree();
+        }
+        else
+            Console.WriteLine("NOTICE: Did not pass InputFile");
 
         //Test Prints
         printTerminals();
@@ -253,6 +289,54 @@ public class compiler
             }
         }   
     }
+    private void TokenizeInputFile()
+    {
+        //Tokenization here
+        string[] inputLines = File.ReadAllLines(inputFile);
+        string input;
+        int lineNum = 0, index = 0;
+        bool tokenized = false;
+        StringBuilder sb = new StringBuilder();
+
+        foreach (string l in inputLines)
+            sb.Append(l.Trim());
+        input = sb.ToString();
+
+        while (index < input.Length)
+        {
+            tokenized = false;
+            if (input[index] == '\n')
+            {
+                lineNum++;
+                index++;
+            }
+            else if (input[index] == ' ')
+                index++;
+            else
+            {
+                foreach (Terminal t in terminals)
+                {
+                    if (tokenized)
+                        break;
+                    var sym = t.nonTerminal.Match(input, index);
+                    if (sym.Success && sym.Index == index)
+                    {
+                        Token newT = new Token(sym.ToString(), t.terminal, lineNum);
+                        index += sym.Length;
+                        tokenized = true;
+                        tokens.Add(newT);
+                    }
+                }
+                if (tokenized == false)
+                {
+                    Console.WriteLine("\nERROR!! : failed to Tokenize! line {0}: '{1}' at index: {2}", lineNum, input, index);
+                    Console.Read();
+                    System.Environment.Exit(-1);
+                }
+            }
+        }
+    }
+
     public List<Production> GetProductions()
     {
         return productions;
@@ -265,13 +349,11 @@ public class compiler
     {
         return nullables;
     }
-    public Stack<TreeNode> getTree()
+    public List<TreeNode> getTree()
     {
-        if(this.inputFile == null)
-            throw new Exception("Compiler needs both a Grammar File and an Input File!");
-
-        string[] inputCode = File.ReadAllLines(this.inputFile);
-        return null;
+        if(productionTree.Count == 0)
+            computeTree();
+        return productionTree;
     }
     public Dictionary<string, HashSet<string>> getFirsts()
     {
@@ -295,6 +377,7 @@ public class compiler
     {
         return LLTable;
     }
+
     public void printTerminals()
     {
         foreach(Terminal t in terminals)
@@ -446,6 +529,7 @@ public class compiler
                 Console.WriteLine("\t{0} , {1} ::= {2}", nonterminal.Key, terminal.Key, LLTable[nonterminal.Key][terminal.Key].First());
         }
     }
+
     private void computeNullables()
     {
         bool nonNullabel = false, allNullablesFound = false;
@@ -754,13 +838,47 @@ public class compiler
                     }
                     else
                     {
-                        //entry[s].Add("| " + production);
-                        throw new Exception("Entry: '"+p.lhs+ "' already contains '"+s+ "' -> '"+string.Join(" ", entry[s])+"'\n" +
+                        //entry[s].Add(production);
+                        throw new Exception("Exception Line:{"+p.line+"}\nEntry: '"+p.lhs+ "' already contains '"+s+ "' -> '"+string.Join(" ", entry[s])+"'\n" +
                             "cannot add goes to '"+s+ "' -> '"+production+"', grammar not LL(1)!!");
                     }
                 }
             }
             LLTable.Add(p.lhs, entry);
+        }
+    }
+    private void computeTree()
+    {
+        Stack<TreeNode> inputStack = new Stack<TreeNode>();
+        TreeNode start = new TreeNode("$");
+        bool match = false;
+        int inputIndex = 0;
+
+        if (this.inputFile == null)
+            throw new Exception("Compiler needs both a Grammar File and an Input File!");
+
+        string inputCode = "";
+        foreach(string line in File.ReadAllLines(this.inputFile))
+            inputCode += line;
+        inputCode = inputCode.Trim();
+
+        if (inputCode.Length == 0)
+            throw new Exception("Input File has length 0, cannot create tree with no input.");
+
+        while(inputIndex < inputCode.Length)
+        {
+            match = false;
+
+            foreach(Terminal t in terminals)
+            {
+                var sym = t.nonTerminal.Match(inputCode, inputIndex);
+                if (sym.Success && sym.Index == inputIndex)
+                {
+                    match = true;
+                    TreeNode newNode = new TreeNode(sym.Value);
+                    inputIndex += sym.Length;
+                }
+            }
         }
     }
     private void outPutNewProductionsToFile()
@@ -795,7 +913,7 @@ public class Compiler
         compiler c = new compiler(gFile);
         return c.getTable();
     }
-    public static Stack<TreeNode> parse(string gFile, string iFile)
+    public static List<TreeNode> parse(string gFile, string iFile)
     {
         compiler c = new compiler(gFile, iFile);
         return c.getTree();
