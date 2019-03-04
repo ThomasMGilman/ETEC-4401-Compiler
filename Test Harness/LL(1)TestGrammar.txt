@@ -1,0 +1,24 @@
+IF -> if\b
+ELSE -> else\b
+SEMI -> ;
+NUM -> \d+
+ID -> \w+
+EQ -> =
+LP -> \(
+RP -> \)
+ADDOP -> \+
+MULOP -> \*
+LBR -> \{
+RBR -> \}
+
+S -> stmt SEMI S | lambda
+a-o-f -> ID a-o-f’
+a-o-f’ -> EQ e | LP e RP
+cond -> IF LP e RP LBR S RBR cond’
+cond’ -> lambda | ELSE LBR S RBR
+e -> t e’
+e’ -> ADDOP t e’ | lambda
+f -> ID | NUM | LP e RP
+stmt -> a-o-f | cond
+t -> f t’
+t’ -> MULOP f t’ | lambda
