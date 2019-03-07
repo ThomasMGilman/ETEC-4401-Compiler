@@ -82,13 +82,13 @@ public class Production
 
 public class TreeNode
 {
-    public string sym, token = null;
-    public HashSet<TreeNode> children;
+    public string Symbol, Token = null;
+    public HashSet<TreeNode> Children;
 
-    public TreeNode(string sym)
+    public TreeNode(string Symbol)
     {
-        this.sym = sym;
-        children = new HashSet<TreeNode>();
+        this.Symbol = Symbol;
+        Children = new HashSet<TreeNode>();
     }
 }
 
@@ -100,7 +100,7 @@ public class compiler
     static private List<Terminal> terminals;
     static private List<Token> tokens;
     static private List<Production> productions;
-    static private HashSet<TreeNode> productionTree;
+    static private TreeNode productionTreeRoot;
     static private HashSet<string> nullables;
     static private Dictionary<string, Production> productionDict;
     static private Dictionary<string, HashSet<string>> Follows;
@@ -117,11 +117,11 @@ public class compiler
         terminals       = new List<Terminal>();
         tokens          = new List<Token>();
         productions     = new List<Production>();
-        productionTree  = new HashSet<TreeNode>();
         nullables       = new HashSet<string>();
         productionDict  = new Dictionary<string, Production>();
         Follows         = new Dictionary<string, HashSet<string>>();
         LLTable         = new Dictionary<string, Dictionary<string, HashSet<string>>>();
+        productionTreeRoot = null;
         currentLineNum  = 0;
 
         //compiler tasks, must do in order
@@ -136,12 +136,6 @@ public class compiler
         else
             throw new Exception("ERROR!!!! Did not pass a Grammar File!!");
 
-        if (this.inputFile != null)
-        {
-            TokenizeInputFile();
-            computeTree();
-        }
-
         //Test Prints
         printTerminals();
         printProductions();
@@ -149,6 +143,14 @@ public class compiler
         printFollows();
         printNullableSet();
         printTable();
+
+        if (this.inputFile != null)
+        {
+            TokenizeInputFile();
+            computeTree();
+        }
+
+        
     }
     private void setTerminals()
     {
@@ -345,15 +347,15 @@ public class compiler
     {
         return terminals;
     }
+    public TreeNode getTree()
+    {
+        if (productionTreeRoot == null)
+            computeTree();
+        return productionTreeRoot;
+    }
     public HashSet<string> getNullables()
     {
         return nullables;
-    }
-    public HashSet<TreeNode> getTree()
-    {
-        if(productionTree.Count == 0)
-            computeTree();
-        return productionTree;
     }
     public Dictionary<string, HashSet<string>> getFirsts()
     {
@@ -633,6 +635,8 @@ public class compiler
                 if (!productionDict.ContainsKey(term) && !term.ToLower().Trim().Equals("lambda"))
                 {
                     p.Firsts.Add(term);
+                    if (!p.FirstDict.ContainsKey(term))
+                        p.FirstDict.Add(term, production);
                     productionDict[p.lhs].Firsts.Add(term);
                 }
             }
@@ -834,9 +838,7 @@ public class compiler
                 {
                     if (!entry.ContainsKey(s))
                     {
-                        HashSet<string> productions = new HashSet<string>();
-                        productions.Add(production);
-                        entry.Add(s, productions);
+                        entry.Add(s, getProductionAsHash(production));
                     }
                     else
                     {
@@ -851,13 +853,13 @@ public class compiler
     }
     private void computeTree()
     {
-        Stack<string> inputStack = new Stack<string>();
+        Stack<TreeNode> inputStack = new Stack<TreeNode>();
         HashSet<string> productionString;
-        TreeNode start = new TreeNode("$"), curNode = null;
+        TreeNode start = new TreeNode("$"), curNode = null, nonTerm = null;
         Production p = productions[0]; //set first production
         Token t;
         
-        int inputIndex = 0, treeNodeIndex = 0;
+        int inputIndex = 0;
 
         if (this.inputFile == null)
             throw new Exception("Compiler needs both a Grammar File and an Input File!");
@@ -870,45 +872,65 @@ public class compiler
 
             if(inputStack.Count > 0)
             {
-                if (productionDict.ContainsKey(inputStack.Peek())) //top symbol is nonterminal
+                if (productionDict.ContainsKey(inputStack.Peek().Symbol)) //top symbol is nonterminal
                 {
-                    //get nonterminal and push production that starts on IF onto the stack backwards
-                    p = productionDict[inputStack.Peek()];
-                    inputStack.Pop();   //remove nonterminal and add contents
+                    //get nonterminal, remove it and push production that starts on IF onto the stack backwards
+                    nonTerm = inputStack.Pop();
 
-                    curNode = new TreeNode(p.lhs);
-
-                    productionString = LLTable[p.lhs][t.sym];
-                    for (int index = productionString.Count; index >= 0; index--)
+                    try
                     {
-                        inputStack.Push(productionString.ElementAt(index));
+                        productionString = LLTable[nonTerm.Symbol][t.lexeme];
+                        for(int index = productionString.Count - 1; index >= 0; index--)
+                        {
+                            string term = productionString.ElementAt(index);
+                            if (term != "lambda")
+                            {
+                                TreeNode newNode = new TreeNode(term);
+                                nonTerm.Children.Add(newNode);
+                                inputStack.Push(newNode);
+                            }
+                            
+                        }
+                        curNode.Children.Add(nonTerm);  //add nonterm to children then move to next terminal
+                        curNode = nonTerm;
                     }
-                    productionTree.Add(curNode);
-                    treeNodeIndex++;
+                    catch(Exception e)
+                    {
+                        throw new Exception("Error: " + e.Message + " CurNode: " + curNode.Symbol + " input: " + t.sym + " lexeme: " + t.lexeme);
+                    }
+                    
                 }
-                else if (inputStack.Peek() == t.sym) //same symbol, pop
+                else if (inputStack.Peek().Symbol == t.lexeme) //same symbol, pop
                 {
-
+                    curNode = inputStack.Pop();
+                    curNode.Token = t.sym;
+                    inputIndex++;
                 }
                 else
-                    throw new Exception("Error: Symbol '" + t.sym + "' does not match top symbol '" + inputStack.Peek() + "'!!!");
+                    throw new Exception("Error: Symbol '" + t.sym + "' does not match top symbol '" + inputStack.Peek().Symbol + "'!!!");
             }
-            else
+            else //start from start symbol
             {
-                if (!LLTable[p.lhs].ContainsKey(t.sym))
-                    throw new Exception("Error: Token '" + t.sym + "' is not in LLTable under:'" + p.lhs + "'!!");
+                if (!LLTable[p.lhs].ContainsKey(t.lexeme))
+                    throw new Exception("Error: Token '" + t.lexeme + " : " + t.sym + "' is not in LLTable under:'" + p.lhs + "'!!");
                 else
                 {
                     //get first production string and add new Node
-                    productionString = LLTable[p.lhs][t.sym];
+                    productionString = LLTable[p.lhs][t.lexeme];
                     curNode = new TreeNode(p.lhs);
-                    productionTree.Add(curNode);
 
                     //push production with first of first token onto stack in reverse order and append children Nodes to parent
-                    for (int index = productionString.Count; index >= 0; index--)                     
+                    for (int index = productionString.Count - 1; index >= 0; index--)                     
                     {
-                        inputStack.Push(productionString.ElementAt(index));
+                        string term = productionString.ElementAt(index);
+                        if(term != "lambda")
+                        {
+                            TreeNode newNode = new TreeNode(term);
+                            curNode.Children.Add(newNode);
+                            inputStack.Push(newNode);
+                        }
                     }
+                    productionTreeRoot = curNode;
                 }
             }
         }
@@ -945,7 +967,7 @@ public class Compiler
         compiler c = new compiler(gFile);
         return c.getTable();
     }
-    public static List<TreeNode> parse(string gFile, string iFile)
+    public static TreeNode parse(string gFile, string iFile)
     {
         compiler c = new compiler(gFile, iFile);
         return c.getTree();
