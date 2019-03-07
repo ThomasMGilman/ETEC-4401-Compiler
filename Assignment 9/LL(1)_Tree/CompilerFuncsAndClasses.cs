@@ -47,16 +47,18 @@ public class Production
     public int line;
     public List<string> productions;
     public HashSet<string> Firsts;
+    public Dictionary<string, string> FirstDict;
     public HashSet<string> Follow;
 
     public Production(string lhs, string rhs, int line)
     {
-        this.lhs = lhs;
-        this.rhs = rhs;
-        this.line = line;
-        this.productions = new List<string>();
-        this.Firsts = new HashSet<string>();
-        this.Follow = new HashSet<string>();
+        this.lhs            = lhs;
+        this.rhs            = rhs;
+        this.line           = line;
+        this.productions    = new List<string>();
+        this.Firsts         = new HashSet<string>();
+        this.FirstDict      = new Dictionary<string, string>();
+        this.Follow         = new HashSet<string>();
         setProductions();
     }
     public override string ToString()
@@ -98,7 +100,7 @@ public class compiler
     static private List<Terminal> terminals;
     static private List<Token> tokens;
     static private List<Production> productions;
-    static private List<TreeNode> productionTree;
+    static private HashSet<TreeNode> productionTree;
     static private HashSet<string> nullables;
     static private Dictionary<string, Production> productionDict;
     static private Dictionary<string, HashSet<string>> Follows;
@@ -115,7 +117,7 @@ public class compiler
         terminals       = new List<Terminal>();
         tokens          = new List<Token>();
         productions     = new List<Production>();
-        productionTree  = new List<TreeNode>();
+        productionTree  = new HashSet<TreeNode>();
         nullables       = new HashSet<string>();
         productionDict  = new Dictionary<string, Production>();
         Follows         = new Dictionary<string, HashSet<string>>();
@@ -139,8 +141,6 @@ public class compiler
             TokenizeInputFile();
             computeTree();
         }
-        else
-            Console.WriteLine("NOTICE: Did not pass InputFile");
 
         //Test Prints
         printTerminals();
@@ -292,7 +292,7 @@ public class compiler
     private void TokenizeInputFile()
     {
         //Tokenization here
-        string[] inputLines = File.ReadAllLines(inputFile);
+        string[] inputLines = File.ReadAllLines(this.inputFile);
         string input;
         int lineNum = 0, index = 0;
         bool tokenized = false;
@@ -349,7 +349,7 @@ public class compiler
     {
         return nullables;
     }
-    public List<TreeNode> getTree()
+    public HashSet<TreeNode> getTree()
     {
         if(productionTree.Count == 0)
             computeTree();
@@ -579,6 +579,7 @@ public class compiler
             {
                 Different = true;
                 p1.Firsts.Add(f);
+                p1.FirstDict.Add(f, p2.FirstDict[f]);
                 productionDict[p1.lhs].Firsts.Add(f);
             }
         }
@@ -675,6 +676,7 @@ public class compiler
                             if (!term.ToLower().Equals("lambda") && !p.Firsts.Contains(term))
                             {
                                 p.Firsts.Add(term);
+                                p.FirstDict.Add(term, production);
                                 productionDict[p.lhs].Firsts.Add(term);
                                 noChanges = false;
                             }
@@ -849,34 +851,64 @@ public class compiler
     }
     private void computeTree()
     {
-        Stack<TreeNode> inputStack = new Stack<TreeNode>();
-        TreeNode start = new TreeNode("$");
-        bool match = false;
-        int inputIndex = 0;
+        Stack<string> inputStack = new Stack<string>();
+        HashSet<string> productionString;
+        TreeNode start = new TreeNode("$"), curNode = null;
+        Production p = productions[0]; //set first production
+        Token t;
+        
+        int inputIndex = 0, treeNodeIndex = 0;
 
         if (this.inputFile == null)
             throw new Exception("Compiler needs both a Grammar File and an Input File!");
+        if (tokens.Count == 0)
+            throw new Exception("Nil input tokenized! Make sure the input file has content and can associate with the grammar");
 
-        string inputCode = "";
-        foreach(string line in File.ReadAllLines(this.inputFile))
-            inputCode += line;
-        inputCode = inputCode.Trim();
-
-        if (inputCode.Length == 0)
-            throw new Exception("Input File has length 0, cannot create tree with no input.");
-
-        while(inputIndex < inputCode.Length)
+        while(inputIndex < tokens.Count)
         {
-            match = false;
+            t = tokens[inputIndex];
 
-            foreach(Terminal t in terminals)
+            if(inputStack.Count > 0)
             {
-                var sym = t.nonTerminal.Match(inputCode, inputIndex);
-                if (sym.Success && sym.Index == inputIndex)
+                if (productionDict.ContainsKey(inputStack.Peek())) //top symbol is nonterminal
                 {
-                    match = true;
-                    TreeNode newNode = new TreeNode(sym.Value);
-                    inputIndex += sym.Length;
+                    //get nonterminal and push production that starts on IF onto the stack backwards
+                    p = productionDict[inputStack.Peek()];
+                    inputStack.Pop();   //remove nonterminal and add contents
+
+                    curNode = new TreeNode(p.lhs);
+
+                    productionString = LLTable[p.lhs][t.sym];
+                    for (int index = productionString.Count; index >= 0; index--)
+                    {
+                        inputStack.Push(productionString.ElementAt(index));
+                    }
+                    productionTree.Add(curNode);
+                    treeNodeIndex++;
+                }
+                else if (inputStack.Peek() == t.sym) //same symbol, pop
+                {
+
+                }
+                else
+                    throw new Exception("Error: Symbol '" + t.sym + "' does not match top symbol '" + inputStack.Peek() + "'!!!");
+            }
+            else
+            {
+                if (!LLTable[p.lhs].ContainsKey(t.sym))
+                    throw new Exception("Error: Token '" + t.sym + "' is not in LLTable under:'" + p.lhs + "'!!");
+                else
+                {
+                    //get first production string and add new Node
+                    productionString = LLTable[p.lhs][t.sym];
+                    curNode = new TreeNode(p.lhs);
+                    productionTree.Add(curNode);
+
+                    //push production with first of first token onto stack in reverse order and append children Nodes to parent
+                    for (int index = productionString.Count; index >= 0; index--)                     
+                    {
+                        inputStack.Push(productionString.ElementAt(index));
+                    }
                 }
             }
         }
