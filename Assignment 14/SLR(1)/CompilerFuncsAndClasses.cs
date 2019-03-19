@@ -113,7 +113,7 @@ public class compiler
         //initiallize all the class globals
         this.grammarFile = grammarFile;
         this.inputFile = inputFile;
-        grammarLines = System.IO.File.ReadAllLines(@grammarFile);
+        grammarLines    = File.ReadAllLines(@grammarFile);
         middle          = new Regex(@"->");
         terminals       = new List<Terminal>();
         tokens          = new List<Token>();
