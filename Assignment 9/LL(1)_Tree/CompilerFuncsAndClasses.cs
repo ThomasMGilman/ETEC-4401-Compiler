@@ -17,19 +17,19 @@ public struct Terminal
 
 public class Token
 {
-    public string sym;
-    public string lexeme;
+    public string Symbol;
+    public string Lexeme;
     public int line;
     public Token(string sym, string lexeme, int line)
     {
-        this.sym = sym;
-        this.lexeme = lexeme;
+        this.Symbol = sym;
+        this.Lexeme = lexeme;
         this.line = line;
     }
     public override string ToString()
     {
         return string.Format("[{0,10} {1,4} {2,25}]",
-            this.sym, this.line, this.lexeme);
+            this.Symbol, this.line, this.Lexeme);
     }
 }
 
@@ -82,13 +82,14 @@ public class Production
 
 public class TreeNode
 {
-    public string Symbol, Token = null;
-    public HashSet<TreeNode> Children;
+    public string Symbol;
+    public Token Token = null;
+    public List<TreeNode> Children;
 
     public TreeNode(string Symbol)
     {
         this.Symbol = Symbol;
-        Children = new HashSet<TreeNode>();
+        Children = new List<TreeNode>();
     }
 }
 
@@ -320,11 +321,11 @@ public class compiler
                 {
                     if (tokenized)
                         break;
-                    var sym = t.nonTerminal.Match(input, index);
-                    if (sym.Success && sym.Index == index)
+                    var lex = t.nonTerminal.Match(input, index);
+                    if (lex.Success && lex.Index == index)
                     {
-                        Token newT = new Token(sym.ToString(), t.terminal, lineNum);
-                        index += sym.Length;
+                        Token newT = new Token(t.terminal, lex.ToString(), lineNum);
+                        index += lex.Length;
                         tokenized = true;
                         tokens.Add(newT);
                     }
@@ -851,89 +852,76 @@ public class compiler
             LLTable.Add(p.lhs, entry);
         }
     }
-    private void computeTree()
+    private int computeTree()
     {
-        Stack<TreeNode> inputStack = new Stack<TreeNode>();
-        HashSet<string> productionString;
-        TreeNode start = new TreeNode("$"), curNode = null, nonTerm = null;
-        Production p = productions[0]; //set first production
+        LinkedList<TreeNode> stack = new LinkedList<TreeNode>();
+        TreeNode stacktop;
         Token t;
         
-        int inputIndex = 0;
+        productionTreeRoot = new TreeNode(productions[0].lhs);  //set root to start production
+        stack.AddLast(new TreeNode("$"));                       //add end symbol to start of stack
+        stack.AddLast(productionTreeRoot);                      //add first start production
 
         if (this.inputFile == null)
             throw new Exception("Compiler needs both a Grammar File and an Input File!");
         if (tokens.Count == 0)
             throw new Exception("Nil input tokenized! Make sure the input file has content and can associate with the grammar");
 
-        while(inputIndex < tokens.Count)
+        int inputIndex = 0;
+        while (inputIndex <= tokens.Count && stack.Count > 0)
         {
-            t = tokens[inputIndex];
+            if(inputIndex == tokens.Count)
+                t = new Token("$", "$", -1);
+            else
+                t = tokens[inputIndex];
 
-            if(inputStack.Count > 0)
+            stacktop = stack.Last.Value;
+
+            if (productionDict.ContainsKey(stacktop.Symbol)) //top symbol is nonterminal
             {
-                if (productionDict.ContainsKey(inputStack.Peek().Symbol)) //top symbol is nonterminal
+                //get nonterminal, remove it and push production that starts on IF onto the stack backwards
+                try
                 {
-                    //get nonterminal, remove it and push production that starts on IF onto the stack backwards
-                    nonTerm = inputStack.Pop();
-
-                    try
+                    stack.RemoveLast();
+                    if(LLTable[stacktop.Symbol][t.Symbol].ElementAt(0) != "lambda")
                     {
-                        productionString = LLTable[nonTerm.Symbol][t.lexeme];
-                        for(int index = productionString.Count - 1; index >= 0; index--)
-                        {
-                            string term = productionString.ElementAt(index);
-                            if (term != "lambda")
-                            {
-                                TreeNode newNode = new TreeNode(term);
-                                nonTerm.Children.Add(newNode);
-                                inputStack.Push(newNode);
-                            }
-                            
-                        }
-                        curNode.Children.Add(nonTerm);  //add nonterm to children then move to next terminal
-                        curNode = nonTerm;
+                        List<TreeNode> Children = new List<TreeNode>();
+                        foreach (string sym in LLTable[stacktop.Symbol][t.Symbol])
+                            Children.Add(new TreeNode(sym));
+                        stacktop.Children.AddRange(Children);
+                        Children.Reverse();
+                        foreach (TreeNode child in Children)
+                            stack.AddLast(child);
                     }
-                    catch(Exception e)
-                    {
-                        throw new Exception("Error: " + e.Message + " CurNode: " + curNode.Symbol + " input: " + t.sym + " lexeme: " + t.lexeme);
-                    }
-                    
                 }
-                else if (inputStack.Peek().Symbol == t.lexeme) //same symbol, pop
+                catch (Exception e)
                 {
-                    curNode = inputStack.Pop();
-                    curNode.Token = t.sym;
-                    inputIndex++;
-                }
-                else
-                    throw new Exception("Error: Symbol '" + t.sym + "' does not match top symbol '" + inputStack.Peek().Symbol + "'!!!");
-            }
-            else //start from start symbol
-            {
-                if (!LLTable[p.lhs].ContainsKey(t.lexeme))
-                    throw new Exception("Error: Token '" + t.lexeme + " : " + t.sym + "' is not in LLTable under:'" + p.lhs + "'!!");
-                else
-                {
-                    //get first production string and add new Node
-                    productionString = LLTable[p.lhs][t.lexeme];
-                    curNode = new TreeNode(p.lhs);
-
-                    //push production with first of first token onto stack in reverse order and append children Nodes to parent
-                    for (int index = productionString.Count - 1; index >= 0; index--)                     
+                    Console.WriteLine("Stack contents:");
+                    while(stack.Count > 0)
                     {
-                        string term = productionString.ElementAt(index);
-                        if(term != "lambda")
-                        {
-                            TreeNode newNode = new TreeNode(term);
-                            curNode.Children.Add(newNode);
-                            inputStack.Push(newNode);
-                        }
+                        var p = stack.Last.Value;
+                        stack.RemoveLast();
+                        Console.WriteLine('\t'+ p.Symbol);
                     }
-                    productionTreeRoot = curNode;
+                    throw new Exception("Syntax error: " + e.Message + " at line: "+ t.line + "(working on " + stacktop.Symbol + " got " + t.Symbol +" )");
                 }
             }
+            else if (stacktop.Symbol == t.Symbol) //same symbol, pop
+            {
+                stacktop.Token = t;
+                stack.RemoveLast();
+                inputIndex++;
+            }
+            else
+                throw new Exception("Error: Lexeme '" + t.Lexeme + "' does not match top symbol '" + stacktop.Symbol + "'!!!");
         }
+
+        if (stack.Count == 0 && inputIndex - 1 == tokens.Count) //good
+            return 1;
+        else if(stack.Count == 0)
+            throw new Exception("Trailing garbage");
+        else
+            throw new Exception("Early end of file");
     }
     private void outPutNewProductionsToFile()
     {
