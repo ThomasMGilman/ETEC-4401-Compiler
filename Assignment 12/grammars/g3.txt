@@ -1,0 +1,7 @@
+z -> z
+y -> y
+x -> x
+
+S -> A B | A z | B z
+A -> y z | x
+B -> y B | lambda

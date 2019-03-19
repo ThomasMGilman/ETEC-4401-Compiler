@@ -1,0 +1,9 @@
+num -> \d+
+id -> \w+
+= -> =
+( -> [(]
+) -> [)]
+
+S -> assign | func-call
+assign -> id = num
+func-call -> id ( )

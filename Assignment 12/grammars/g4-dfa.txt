@@ -1,0 +1,49 @@
+State 0
+5 items
+	S' 0 S
+	S 0 assign
+	S 0 func-call
+	assign 0 id = num
+	func-call 0 id ( )
+4 transitions
+	S 2
+	assign 1
+	func-call 3
+	id 4
+State 4
+2 items
+	assign 1 id = num
+	func-call 1 id ( )
+2 transitions
+	= 5
+	( 7
+State 7
+1 items
+	func-call 2 id ( )
+1 transitions
+	) 8
+State 8
+1 items
+	func-call 3 id ( )
+0 transitions
+State 5
+1 items
+	assign 2 id = num
+1 transitions
+	num 6
+State 6
+1 items
+	assign 3 id = num
+0 transitions
+State 1
+1 items
+	S 1 assign
+0 transitions
+State 2
+1 items
+	S' 1 S
+0 transitions
+State 3
+1 items
+	S 1 func-call
+0 transitions

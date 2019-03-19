@@ -1,0 +1,27 @@
+State 0
+4 items
+	S' 0 S
+	S 0 A
+	S 0 x
+	A 0 b
+4 transitions
+	S 3
+	A 4
+	x 1
+	b 2
+State 2
+1 items
+	A 1 b
+0 transitions
+State 3
+1 items
+	S' 1 S
+0 transitions
+State 4
+1 items
+	S 1 A
+0 transitions
+State 1
+1 items
+	S 1 x
+0 transitions

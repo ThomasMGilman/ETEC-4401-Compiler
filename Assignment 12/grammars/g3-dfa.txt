@@ -1,0 +1,77 @@
+State 0
+8 items
+	S' 0 S
+	S 0 A B
+	S 0 A z
+	S 0 B z
+	A 0 y z
+	A 0 x
+	B 0 y B
+	B 0 
+5 transitions
+	S 11
+	A 8
+	B 5
+	y 1
+	x 7
+State 11
+1 items
+	S' 1 S
+0 transitions
+State 5
+1 items
+	S 1 B z
+1 transitions
+	z 6
+State 6
+1 items
+	S 2 B z
+0 transitions
+State 1
+4 items
+	A 1 y z
+	B 1 y B
+	B 0 y B
+	B 0 
+3 transitions
+	z 2
+	B 3
+	y 4
+State 4
+3 items
+	B 1 y B
+	B 0 y B
+	B 0 
+2 transitions
+	B 3
+	y 4
+State 3
+1 items
+	B 2 y B
+0 transitions
+State 2
+1 items
+	A 2 y z
+0 transitions
+State 8
+4 items
+	S 1 A B
+	S 1 A z
+	B 0 y B
+	B 0 
+3 transitions
+	B 10
+	z 9
+	y 4
+State 9
+1 items
+	S 2 A z
+0 transitions
+State 10
+1 items
+	S 2 A B
+0 transitions
+State 7
+1 items
+	A 1 x
+0 transitions
