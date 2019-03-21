@@ -18,7 +18,7 @@ public class compiler
     static private List<Token> tokens;
     static private List<Production> productions;
     static private TreeNode productionTreeRoot = null;
-    static private State Q;
+    static private State startState;
     static private HashSet<string> nullables;
     static private Dictionary<string, Production> productionDict;
     static private Dictionary<string, HashSet<string>> Follows;
@@ -28,6 +28,9 @@ public class compiler
     public compiler(string grammarFile, string inputFile = null, int cType = 0)
     {
         //compiler tasks, must do in order
+        this.grammarFile = grammarFile;
+        this.inputFile = inputFile;
+
         if (this.grammarFile != null)
         {
             init(grammarFile, inputFile);
@@ -51,38 +54,10 @@ public class compiler
             computeTree();
         }
     }
-    private void LL_Grammar_Proc()
-    {
-        setTerminals();
-        computeNullables();
-        computeAllFirsts();
-        computeFollows();
-        computeTable();
 
-        //Test Prints
-        /*
-        printTerminals();
-        printProductions();
-        printFirsts();
-        printFollows();
-        printNullableSet();
-        printTable();
-        */
-    }
-    private void LR_Grammar_Proc()
-    {
-        //create Start State
-        setTerminals();
-        Q = new State();
-        LR0Item start = new LR0Item("S'", new List<string> { "S" }, 0);
-        Q.items.Add(start);
-        Q = computeClosure(Q);
-    }
     private void init(string grammarFile, string inputFile)
     {
         //initiallize all the class globals
-        this.grammarFile = grammarFile;
-        this.inputFile = inputFile;
         grammarLines = File.ReadAllLines(@grammarFile);
         middle = new Regex(@"->");
         terminals = new List<Terminal>();
@@ -322,34 +297,9 @@ public class compiler
     {
         return LLTable;
     }
-    public State computeClosure(State startState)
+    public State getLR0_DFA()
     {
-        State S2 = startState;
-        List<LR0Item> toConsider = startState.items;
-        int stateIndex = 0;
-
-        while (stateIndex < toConsider.Count)
-        {
-            LR0Item item = toConsider[stateIndex];
-            stateIndex++;
-            if (!item.DposAtEnd())
-            {
-                string sym = item.Rhs[item.Dpos];
-                if (productionDict.ContainsKey(sym)) //nonterminal
-                {
-                    foreach (string p in productionDict[sym].productions)
-                    {
-                        LR0Item item2 = new LR0Item(sym, getProductionAsList(p), 0);
-                        if (!S2.items.Contains(item2))
-                        {
-                            S2.items.Add(item2);
-                            toConsider.Add(item2);
-                        }
-                    }
-                }
-            }
-        }
-        return S2;
+        return startState;
     }
 
     public void printTerminals()
@@ -509,6 +459,25 @@ public class compiler
             LLdot.dumpIt(productionTreeRoot);
     }
 
+    //LL(0) Stuff
+    private void LL_Grammar_Proc()
+    {
+        setTerminals();
+        computeNullables();
+        computeAllFirsts();
+        computeFollows();
+        computeTable();
+
+        //Test Prints
+        /*
+        printTerminals();
+        printProductions();
+        printFirsts();
+        printFollows();
+        printNullableSet();
+        printTable();
+        */
+    }
     private void computeNullables()
     {
         bool nonNullabel = false, allNullablesFound = false;
@@ -919,7 +888,99 @@ public class compiler
                 sw.WriteLine("{0} -> {1}.", p.lhs, p.rhs);
             sw.Close();
         }
-        Console.WriteLine("File has been written");   
+        Console.WriteLine("File has been written");
+    }
+
+    //LR(0) stuff
+    private void LR_Grammar_Proc()
+    {
+        //create Start State
+        setTerminals();
+        startState = new State();
+        LR0Item start = new LR0Item("S'", new List<string> { "S" }, 0);
+        Dictionary<HashSet<LR0Item>, State> seen = new Dictionary<HashSet<LR0Item>, State>(new EQ());
+        Stack<State> todo = new Stack<State>();
+
+        startState.Items.Add(start);
+        startState.Items = computeClosure(startState.Items);
+        seen.Add(startState.Items, startState);
+        todo.Push(startState);
+
+        while (todo.Count > 0)
+        {
+            State Q = todo.Pop();
+            Dictionary<string, HashSet<LR0Item>> transitions = computeTransitions(Q);
+            addStates(Q, transitions, seen, todo);
+        }
+    }
+    private HashSet<LR0Item> computeClosure(HashSet<LR0Item> stateItems)
+    {
+        HashSet<LR0Item> stateItems2 = new HashSet<LR0Item>();
+        foreach (LR0Item i in stateItems)
+            stateItems2.Add(i);
+
+        List<LR0Item> toConsider = stateItems.ToList();
+        int stateIndex = 0;
+
+        while (stateIndex < toConsider.Count)
+        {
+            LR0Item item = toConsider[stateIndex];
+            stateIndex++;
+            if (!item.DposAtEnd())
+            {
+                string sym = item.Rhs[item.Dpos];
+                if (productionDict.ContainsKey(sym)) //nonterminal
+                {
+                    foreach (string p in productionDict[sym].productions)
+                    {
+                        LR0Item item2 = new LR0Item(sym, getProductionAsList(p), 0);
+                        if (!stateItems2.Contains(item2))
+                        {
+                            stateItems2.Add(item2);
+                            toConsider.Add(item2);
+                        }
+                    }
+                }
+            }
+        }
+        return stateItems2;
+    }
+    private Dictionary<string, HashSet<LR0Item>> computeTransitions(State State)
+    {
+        //make copy of transitions dictionary in State
+        Dictionary<string, HashSet<LR0Item>> transitions = new Dictionary<string, HashSet<LR0Item>>();
+        foreach(KeyValuePair<string, State> key in State.Transitions)
+            transitions.Add(key.Key, key.Value.Items);
+
+        //add new transitions if not in dict
+        foreach (LR0Item item in State.Items)
+        {
+            if(!item.DposAtEnd())
+            {
+                string sym = item.Rhs[item.Dpos];
+                if(!transitions.ContainsKey(sym))
+                    transitions.Add(sym, new HashSet<LR0Item>());
+
+                transitions[sym].Add(new LR0Item(item.Lhs, item.Rhs, item.Dpos + 1));
+            }
+        }
+        //return copy as new Dict
+        return transitions;
+    }
+    private void addStates(State state, Dictionary<string, HashSet<LR0Item>>  transitions, Dictionary<HashSet<LR0Item>, State> seen, Stack<State> todo)
+    {
+        foreach (KeyValuePair<string, HashSet<LR0Item>> key in transitions)
+        {
+            HashSet<LR0Item> Item2 = computeClosure(key.Value);
+            if (!seen.ContainsKey(Item2))
+            {
+                State state2 = new State();
+                state2.Items = Item2;
+                seen[Item2] = state2;
+                todo.Push(state2);
+            }
+            state.Transitions[key.Key] = seen[Item2];
+        }
     }
 }
 
@@ -948,7 +1009,7 @@ public class Compiler
         c = new compiler(gFile, iFile);
         return c.getTree();
     }
-    public static TreeNode makelr0dfa(string gFile)
+    public static State makelr0dfa(string gFile)
     {
         c = new compiler(gFile, null, 1);
         return c.getLR0_DFA();

@@ -133,16 +133,17 @@ class EQ : IEqualityComparer<HashSet<LR0Item>>
             h ^= i.GetHashCode();
         }
         return h;
+    }
 }
 
 public class State
 {
-    public List<LR0Item> items;
-    public Dictionary<string, State> transitions;
+    public HashSet<LR0Item> Items;
+    public Dictionary<string, State> Transitions;
     public State()
     {
-        items       = new List<LR0Item>();
-        transitions = new Dictionary<string, State>();
+        Items = new HashSet<LR0Item>();
+        Transitions = new Dictionary<string, State>();
     }
 }
 
@@ -195,7 +196,8 @@ class LLdot
         {
             wr.Write("digraph d{\n");
             wr.Write("node [shape=box];\n");
-            sroot.walk((n) => {
+            sroot.walk((n) =>
+            {
                 wr.Write("n" + n.unique + " [label=\"");
                 string sym = n.realNode.Symbol;
                 sym = sym.Replace("\"", "\\\"");
@@ -218,7 +220,8 @@ class LLdot
                 wr.Write("];\n");
             });
 
-            sroot.walk((n) => {
+            sroot.walk((n) =>
+            {
                 if (n.parent != null)
                     wr.Write("n" + n.parent.unique + "->n" + n.unique + ";\n");
             });
