@@ -118,13 +118,30 @@ public class LR0Item
     }
 }
 
+class EQ : IEqualityComparer<HashSet<LR0Item>>
+{
+    public EQ() { }
+    public bool Equals(HashSet<LR0Item> a, HashSet<LR0Item> b)
+    {
+        return a.SetEquals(b);
+    }
+    public int GetHashCode(HashSet<LR0Item> x)
+    {
+        int h = 0;
+        foreach (var i in x)
+        {
+            h ^= i.GetHashCode();
+        }
+        return h;
+}
+
 public class State
 {
-    public HashSet<LR0Item> items;
+    public List<LR0Item> items;
     public Dictionary<string, State> transitions;
-    State()
+    public State()
     {
-        items = new HashSet<LR0Item>();
+        items       = new List<LR0Item>();
         transitions = new Dictionary<string, State>();
     }
 }

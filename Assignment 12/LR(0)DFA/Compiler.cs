@@ -18,6 +18,7 @@ public class compiler
     static private List<Token> tokens;
     static private List<Production> productions;
     static private TreeNode productionTreeRoot = null;
+    static private State Q;
     static private HashSet<string> nullables;
     static private Dictionary<string, Production> productionDict;
     static private Dictionary<string, HashSet<string>> Follows;
@@ -33,19 +34,30 @@ public class compiler
             switch (cType)
             {
                 case (0):               //LL_Grammar
-                    setTerminals();
-                    computeNullables();
-                    computeAllFirsts();
-                    computeFollows();
-                    computeTable();
+                    LL_Grammar_Proc();
                     break;
                 case (1):               //LR_Grammar
-
+                    //create Start State
+                    LR_Grammar_Proc();
                     break;
             }
         }
         else
             throw new Exception("ERROR!!!! Did not pass a Grammar File!!");
+
+        if (this.inputFile != null)
+        {
+            TokenizeInputFile();
+            computeTree();
+        }
+    }
+    private void LL_Grammar_Proc()
+    {
+        setTerminals();
+        computeNullables();
+        computeAllFirsts();
+        computeFollows();
+        computeTable();
 
         //Test Prints
         /*
@@ -56,12 +68,15 @@ public class compiler
         printNullableSet();
         printTable();
         */
-
-        if (this.inputFile != null)
-        {
-            TokenizeInputFile();
-            computeTree();
-        }
+    }
+    private void LR_Grammar_Proc()
+    {
+        //create Start State
+        setTerminals();
+        Q = new State();
+        LR0Item start = new LR0Item("S'", new List<string> { "S" }, 0);
+        Q.items.Add(start);
+        Q = computeClosure(Q);
     }
     private void init(string grammarFile, string inputFile)
     {
@@ -307,6 +322,35 @@ public class compiler
     {
         return LLTable;
     }
+    public State computeClosure(State startState)
+    {
+        State S2 = startState;
+        List<LR0Item> toConsider = startState.items;
+        int stateIndex = 0;
+
+        while (stateIndex < toConsider.Count)
+        {
+            LR0Item item = toConsider[stateIndex];
+            stateIndex++;
+            if (!item.DposAtEnd())
+            {
+                string sym = item.Rhs[item.Dpos];
+                if (productionDict.ContainsKey(sym)) //nonterminal
+                {
+                    foreach (string p in productionDict[sym].productions)
+                    {
+                        LR0Item item2 = new LR0Item(sym, getProductionAsList(p), 0);
+                        if (!S2.items.Contains(item2))
+                        {
+                            S2.items.Add(item2);
+                            toConsider.Add(item2);
+                        }
+                    }
+                }
+            }
+        }
+        return S2;
+    }
 
     public void printTerminals()
     {
@@ -463,10 +507,6 @@ public class compiler
     {
         if (productionTreeRoot != null && inputFile != null && grammarFile != null)
             LLdot.dumpIt(productionTreeRoot);
-    }
-    public void computeClosure(string gFile)
-    {
-
     }
 
     private void computeNullables()
@@ -759,6 +799,17 @@ public class compiler
         {
             string[] terms = production.Trim().Split(' ');
             foreach(string term in terms)
+                Product.Add(term);
+        }
+        return Product;
+    }
+    private List<string> getProductionAsList(string production)
+    {
+        List<string> Product = new List<string>();
+        if (production.Length > 0)
+        {
+            string[] terms = production.Trim().Split(' ');
+            foreach (string term in terms)
                 Product.Add(term);
         }
         return Product;
