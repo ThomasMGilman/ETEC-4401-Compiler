@@ -103,10 +103,18 @@ public class LR0Item
         if (obj == null)
             return false;
         LR0Item o = obj as LR0Item;
-        if (o == null)
+        if (o == null 
+            || o.Lhs != this.Lhs 
+            || o.Dpos != this.Dpos 
+            || o.Rhs.Count != this.Rhs.Count)
             return false;
-
-        return base.Equals(obj);
+        
+        for(int i = 0; i < this.Rhs.Count; i++)
+        {
+            if (o.Rhs[i] != this.Rhs[i])
+                return false;
+        }
+        return true;
     }
     public static bool operator ==(LR0Item o1, LR0Item o2)
     {

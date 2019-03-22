@@ -949,8 +949,6 @@ public class compiler
     {
         //make copy of transitions dictionary in State
         Dictionary<string, HashSet<LR0Item>> transitions = new Dictionary<string, HashSet<LR0Item>>();
-        foreach(KeyValuePair<string, State> key in State.Transitions)
-            transitions.Add(key.Key, key.Value.Items);
 
         //add new transitions if not in dict
         foreach (LR0Item item in State.Items)
@@ -972,11 +970,12 @@ public class compiler
         foreach (KeyValuePair<string, HashSet<LR0Item>> key in transitions)
         {
             HashSet<LR0Item> Item2 = computeClosure(key.Value);
+
             if (!seen.ContainsKey(Item2))
             {
                 State state2 = new State();
                 state2.Items = Item2;
-                seen[Item2] = state2;
+                seen.Add(Item2, state2);
                 todo.Push(state2);
             }
             state.Transitions[key.Key] = seen[Item2];
