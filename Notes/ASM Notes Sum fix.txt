@@ -1,0 +1,28 @@
+void sumprimeNodeCode( TreeNode n, VarType type1, out VarType type){
+//sum' -> ADDOP term sum' | MINUS term sum' | lambda
+if( n.Children.Count == 0 ){
+type = type1;
+return;
+}
+VarType type2;
+termNodeCode( n.Children[1], out type2);
+if( type1 != type2 )
+error
+emit("pop rax"); //second operand
+emit("movq xmm1, rax");
+emit("pop rax"); //first operand
+emit("movq xmm0, rax");
+switch( n.Children[0].Lexeme ){
+case "+":
+emit("addsd xmm0,xmm1");
+break;
+case "-":
+emit("subsd xmm0,xmm1");
+break;
+default:
+ICE
+}
+emit("movq rax, xmm0");
+emit("push rax");
+sumprimeNodeCode(n.Children[2], type1, out type);
+}

@@ -25,7 +25,7 @@ namespace Test {
             }
             
             var startState = Compiler.makelr0dfa(gfile);
-
+            /*
             Dictionary<dynamic,int> nmap = new Dictionary<dynamic,int>();
             walk(startState, (n) => {
                 int c = nmap.Count;
@@ -35,7 +35,9 @@ namespace Test {
             var f = System.IO.Path.GetFileName(gfile);
 
             dumpText(f.Replace(".txt","-dfa.txt"), startState,nmap );
-            dumpDot(f.Replace(".txt","-dfa.dot"),startState, nmap ); 
+            dumpDot(f.Replace(".txt","-dfa.dot"),startState, nmap );
+            */
+            Console.Read();
         }
 
         static void dumpText<T>(string fname, T startState, Dictionary<dynamic,int> nmap){

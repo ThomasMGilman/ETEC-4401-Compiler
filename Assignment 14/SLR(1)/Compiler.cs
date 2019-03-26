@@ -9,90 +9,6 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System.IO;
 
-public struct Terminal
-{
-    public string terminal;
-    public Regex nonTerminal;
-}
-
-public class Token
-{
-    public string Symbol;
-    public string Lexeme;
-    public int line;
-    public Token(string sym, string lexeme, int line)
-    {
-        this.Symbol = sym;
-        this.Lexeme = lexeme;
-        this.line = line;
-    }
-    public override string ToString()
-    {
-        return string.Format("[{0,10} {1,4} {2,25}]",
-            this.Symbol, this.line, this.Lexeme);
-    }
-}
-
-public struct longestProduction
-{
-    public Production p;
-    public int longestProdNum;
-    public string longestProd;
-}
-
-public class Production
-{
-    public string lhs;
-    public string rhs;
-    public int line;
-    public List<string> productions;
-    public HashSet<string> Firsts;
-    public Dictionary<string, string> FirstDict;
-    public HashSet<string> Follow;
-
-    public Production(string lhs, string rhs, int line)
-    {
-        this.lhs            = lhs;
-        this.rhs            = rhs;
-        this.line           = line;
-        this.productions    = new List<string>();
-        this.Firsts         = new HashSet<string>();
-        this.FirstDict      = new Dictionary<string, string>();
-        this.Follow         = new HashSet<string>();
-        setProductions();
-    }
-    public override string ToString()
-    {
-        return string.Format("[{0,10} {1,4} {2,25}]",
-            this.lhs, this.line, this.rhs);
-    }
-    public void setProductions()
-    {
-        string[] prods = rhs.Split('|');
-        foreach(string production in prods)
-        {
-            this.productions.Add(production.Trim());
-        }
-    }
-    public void resetRHS()
-    {
-        rhs = string.Join(" | ", productions);
-    }
-}
-
-public class TreeNode
-{
-    public string Symbol;
-    public Token Token = null;
-    public List<TreeNode> Children;
-
-    public TreeNode(string Symbol)
-    {
-        this.Symbol = Symbol;
-        Children = new List<TreeNode>();
-    }
-}
-
 public class compiler
 {
     private string grammarFile, inputFile;
@@ -102,54 +18,57 @@ public class compiler
     static private List<Token> tokens;
     static private List<Production> productions;
     static private TreeNode productionTreeRoot = null;
+    static private State startState = null;
     static private HashSet<string> nullables;
     static private Dictionary<string, Production> productionDict;
     static private Dictionary<string, HashSet<string>> Follows;
     static private Dictionary<string, Dictionary<string, HashSet<string>>> LLTable;
     static private int currentLineNum;
 
-    public compiler(string grammarFile, string inputFile = null)
+    public compiler(string grammarFile, string inputFile = null, int cType = 0)
     {
-        //initiallize all the class globals
+        //compiler tasks, must do in order
         this.grammarFile = grammarFile;
         this.inputFile = inputFile;
-        grammarLines    = File.ReadAllLines(@grammarFile);
-        middle          = new Regex(@"->");
-        terminals       = new List<Terminal>();
-        tokens          = new List<Token>();
-        productions     = new List<Production>();
-        nullables       = new HashSet<string>();
-        productionDict  = new Dictionary<string, Production>();
-        Follows         = new Dictionary<string, HashSet<string>>();
-        LLTable         = new Dictionary<string, Dictionary<string, HashSet<string>>>();
-        productionTreeRoot = null;
-        currentLineNum  = 0;
 
-        //compiler tasks, must do in order
         if (this.grammarFile != null)
         {
-            setTerminals();
-            computeNullables();
-            computeAllFirsts();
-            computeFollows();
-            computeTable();
+            init(grammarFile, inputFile);
+            switch (cType)
+            {
+                case (0):               //LL_Grammar
+                    LL_Grammar_Proc();
+                    break;
+                case (1):               //LR_Grammar
+                    //create Start State
+                    LR_Grammar_Proc();
+                    break;
+            }
         }
         else
             throw new Exception("ERROR!!!! Did not pass a Grammar File!!");
-
-        //Test Prints
-        printTerminals();
-        printProductions();
-        printFirsts();
-        printFollows();
-        printNullableSet();
-        printTable();
 
         if (this.inputFile != null)
         {
             TokenizeInputFile();
             computeTree();
         }
+    }
+
+    private void init(string grammarFile, string inputFile)
+    {
+        //initiallize all the class globals
+        grammarLines = File.ReadAllLines(@grammarFile);
+        middle = new Regex(@"->");
+        terminals = new List<Terminal>();
+        tokens = new List<Token>();
+        productions = new List<Production>();
+        nullables = new HashSet<string>();
+        productionDict = new Dictionary<string, Production>();
+        Follows = new Dictionary<string, HashSet<string>>();
+        LLTable = new Dictionary<string, Dictionary<string, HashSet<string>>>();
+        productionTreeRoot = null;
+        currentLineNum = 0;
     }
     private void setTerminals()
     {
@@ -378,6 +297,10 @@ public class compiler
     {
         return LLTable;
     }
+    public State getLR0_DFA()
+    {
+        return startState;
+    }
 
     public void printTerminals()
     {
@@ -530,12 +453,41 @@ public class compiler
                 Console.WriteLine("\t{0} , {1} ::= {2}", nonterminal.Key, terminal.Key, LLTable[nonterminal.Key][terminal.Key].First());
         }
     }
-    public void dumpTree()
+    public void dumpLL_Tree()
     {
         if (productionTreeRoot != null && inputFile != null && grammarFile != null)
             LLdot.dumpIt(productionTreeRoot);
     }
+    public void dumpLR_DFA()
+    {
+        if (startState != null)
+        {
+            LRdot dfaOut = new LRdot(startState, this.grammarFile);
+        }
+        else
+            throw new Exception("User Error, did not specify the use of an LR Compiler.\nattempted to output a LR_DFA without a LR(0) Start State!!");
+    }
 
+
+    //LL(0) Stuff
+    private void LL_Grammar_Proc()
+    {
+        setTerminals();
+        computeNullables();
+        computeAllFirsts();
+        computeFollows();
+        computeTable();
+
+        //Test Prints
+        /*
+        printTerminals();
+        printProductions();
+        printFirsts();
+        printFollows();
+        printNullableSet();
+        printTable();
+        */
+    }
     private void computeNullables()
     {
         bool nonNullabel = false, allNullablesFound = false;
@@ -830,6 +782,20 @@ public class compiler
         }
         return Product;
     }
+    private List<string> getProductionAsList(string production)
+    {
+        List<string> Product = new List<string>();
+        if (production.Length > 0)
+        {
+            string[] terms = production.Trim().Split(' ');
+            foreach (string term in terms)
+            {
+                if(term.ToLower() != "lambda")
+                    Product.Add(term);
+            }
+        }
+        return Product;
+    }
     private void computeTable()
     {
         foreach (Production p in productions)
@@ -935,107 +901,145 @@ public class compiler
                 sw.WriteLine("{0} -> {1}.", p.lhs, p.rhs);
             sw.Close();
         }
-        Console.WriteLine("File has been written");   
+        Console.WriteLine("File has been written");
+    }
+
+    //LR(0) stuff
+    private void LR_Grammar_Proc()
+    {
+        //create Start State
+        setTerminals();
+        startState = new State();
+        LR0Item start = new LR0Item("S'", new List<string> { "S" }, 0);
+        Dictionary<HashSet<LR0Item>, State> seen = new Dictionary<HashSet<LR0Item>, State>(new EQ());
+        Stack<State> todo = new Stack<State>();
+
+        startState.Items.Add(start);
+        computeClosure(startState.Items);
+        seen.Add(startState.Items, startState);
+        todo.Push(startState);
+
+        while (todo.Count > 0)
+        {
+            State Q = todo.Pop();
+            Dictionary<string, HashSet<LR0Item>> transitions = computeTransitions(Q);
+            addStates(Q, transitions, seen, todo);
+        }
+    }
+    private Dictionary<string, HashSet<LR0Item>> computeTransitions(State State)
+    {
+        //make copy of transitions dictionary in State
+        Dictionary<string, HashSet<LR0Item>> transitions = new Dictionary<string, HashSet<LR0Item>>();
+
+        //add new transitions if not in dict
+        foreach (LR0Item item in State.Items)
+        {
+            if(!item.DposAtEnd())
+            {
+                string sym = item.Rhs[item.Dpos];
+                if (!transitions.ContainsKey(sym))
+                    transitions.Add(sym, new HashSet<LR0Item>());
+
+                transitions[sym].Add(new LR0Item(item.Lhs, item.Rhs, item.Dpos + 1));
+            }
+        }
+        //return copy as new Dict
+        return transitions;
+    }
+    private bool checkSeen(HashSet<LR0Item> hash, Dictionary<HashSet<LR0Item>, State> seenMap)
+    {
+        EQ checker = new EQ();
+        foreach(KeyValuePair<HashSet<LR0Item>, State> pair in seenMap)
+        {
+            if (checker.Equals(hash, pair.Key))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    private void printSeenMap(Dictionary<HashSet<LR0Item>, State> seenMap)
+    {
+        Console.WriteLine("Seen map contains:");
+        foreach(KeyValuePair<HashSet<LR0Item>, State> keyPair in seenMap)
+        {
+            Console.WriteLine("\tHashSet Contains Items: "); keyPair.Value.printHashSet();
+        }
+        Console.WriteLine("------------------------------------");
+    }
+    private void computeClosure(HashSet<LR0Item> stateItems)
+    {
+        int stateIndex = 0;
+        List<LR0Item> toConsider = stateItems.ToList();
+
+        while (stateIndex < toConsider.Count)
+        {
+            LR0Item item = toConsider[stateIndex];
+            stateIndex++;
+            if (!item.DposAtEnd())
+            {
+                string sym = item.Rhs[item.Dpos];
+                if (productionDict.ContainsKey(sym)) //nonterminal
+                {
+                    foreach (string p in productionDict[sym].productions)
+                    {
+                        LR0Item item2 = new LR0Item(sym, getProductionAsList(p), 0);
+                        if (!stateItems.Contains(item2))
+                        {
+                            stateItems.Add(item2);
+                            toConsider.Add(item2);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    private void addStates(State state, Dictionary<string, HashSet<LR0Item>>  transitions, Dictionary<HashSet<LR0Item>, State> seen, Stack<State> todo)
+    {
+        foreach (KeyValuePair<string, HashSet<LR0Item>> key in transitions)
+        {
+            computeClosure(key.Value);
+            if (!checkSeen(key.Value, seen))
+            {
+                State newState = new State();
+                newState.Items = key.Value;
+                seen.Add(key.Value, newState);
+                todo.Push(newState);
+            }
+            state.Transitions[key.Key] = seen[key.Value];
+        }
     }
 }
 
 public class Compiler
 {
+    static compiler c;
     public Compiler()
     {}
     public static Dictionary<string, HashSet<string>> computeFirsts(string gFile)
     {
-        compiler c = new compiler(gFile);
+        c = new compiler(gFile);
         return c.getFirsts();
     }
     public static Dictionary<string, HashSet<string>> computeFollow(string gFile)
     {
-        compiler c = new compiler(gFile);
+        c = new compiler(gFile);
         return c.getFollows();
     }
     public static Dictionary<string, Dictionary<string, HashSet<string>>> computeLLTable(string gFile)
     {
-        compiler c = new compiler(gFile);
+        c = new compiler(gFile);
         return c.getTable();
     }
     public static TreeNode parse(string gFile, string iFile)
     {
-        compiler c = new compiler(gFile, iFile);
+        c = new compiler(gFile, iFile);
         return c.getTree();
     }
-}
-
-class LLdot
-{
-    class ShadowNode
+    public static State makelr0dfa(string gFile)
     {
-        public dynamic realNode;
-        public int unique;
-        public List<ShadowNode> Children = new List<ShadowNode>();
-        static int ctr = 0;
-        public ShadowNode parent;
-        public ShadowNode(dynamic r, ShadowNode parent)
-        {
-            this.realNode = r;
-            this.unique = ctr++;
-            this.parent = parent;
-        }
-        public void walk(Action<ShadowNode> a)
-        {
-            a(this);
-            foreach (var c in Children)
-            {
-                c.walk(a);
-            }
-        }
-    }
-
-    public static void dumpIt(dynamic root)
-    {
-        ShadowNode sroot = theShadowKnows(root, null);
-        using (StreamWriter wr = new StreamWriter("tree.dot"))
-        {
-            wr.Write("digraph d{\n");
-            wr.Write("node [shape=box];\n");
-            sroot.walk((n) => {
-                wr.Write("n" + n.unique + " [label=\"");
-                string sym = n.realNode.Symbol;
-                sym = sym.Replace("\"", "\\\"");
-                wr.Write(sym);
-                if (n.realNode.Token != null)
-                {
-                    var tok = n.realNode.Token;
-                    var lex = tok.Lexeme;
-                    lex = lex.Replace("\\", "\\\\");
-                    lex = lex.Replace("\n", "\\n");
-                    lex = lex.Replace("\"", "\\\"");
-                    wr.Write("\\n");
-                    wr.Write(lex);
-                }
-                wr.Write("\"");
-                if (n.realNode.Token != null)
-                {
-                    wr.Write(",style=filled,fillcolor=\"#c0c0c0\"");
-                }
-                wr.Write("];\n");
-            });
-
-            sroot.walk((n) => {
-                if (n.parent != null)
-                    wr.Write("n" + n.parent.unique + "->n" + n.unique + ";\n");
-            });
-
-            wr.Write("}\n");
-        }
-    }
-
-    static ShadowNode theShadowKnows(dynamic realnode, ShadowNode parent)
-    {
-        ShadowNode shadow = new ShadowNode(realnode, parent);
-        foreach (var c in realnode.Children)
-        {
-            shadow.Children.Add(theShadowKnows(c, shadow));
-        }
-        return shadow;
+        c = new compiler(gFile, null, 1);
+        c.dumpLR_DFA();
+        return c.getLR0_DFA();
     }
 }

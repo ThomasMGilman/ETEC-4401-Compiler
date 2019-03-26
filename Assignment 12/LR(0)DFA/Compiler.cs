@@ -18,7 +18,7 @@ public class compiler
     static private List<Token> tokens;
     static private List<Production> productions;
     static private TreeNode productionTreeRoot = null;
-    static private State startState;
+    static private State startState = null;
     static private HashSet<string> nullables;
     static private Dictionary<string, Production> productionDict;
     static private Dictionary<string, HashSet<string>> Follows;
@@ -453,11 +453,21 @@ public class compiler
                 Console.WriteLine("\t{0} , {1} ::= {2}", nonterminal.Key, terminal.Key, LLTable[nonterminal.Key][terminal.Key].First());
         }
     }
-    public void dumpTree()
+    public void dumpLL_Tree()
     {
         if (productionTreeRoot != null && inputFile != null && grammarFile != null)
             LLdot.dumpIt(productionTreeRoot);
     }
+    public void dumpLR_DFA()
+    {
+        if (startState != null)
+        {
+            LRdot dfaOut = new LRdot(startState, this.grammarFile);
+        }
+        else
+            throw new Exception("User Error, did not specify the use of an LR Compiler.\nattempted to output a LR_DFA without a LR(0) Start State!!");
+    }
+
 
     //LL(0) Stuff
     private void LL_Grammar_Proc()
@@ -779,7 +789,10 @@ public class compiler
         {
             string[] terms = production.Trim().Split(' ');
             foreach (string term in terms)
-                Product.Add(term);
+            {
+                if(term.ToLower() != "lambda")
+                    Product.Add(term);
+            }
         }
         return Product;
     }
@@ -902,7 +915,7 @@ public class compiler
         Stack<State> todo = new Stack<State>();
 
         startState.Items.Add(start);
-        startState.Items = computeClosure(startState.Items);
+        computeClosure(startState.Items);
         seen.Add(startState.Items, startState);
         todo.Push(startState);
 
@@ -913,14 +926,51 @@ public class compiler
             addStates(Q, transitions, seen, todo);
         }
     }
-    private HashSet<LR0Item> computeClosure(HashSet<LR0Item> stateItems)
+    private Dictionary<string, HashSet<LR0Item>> computeTransitions(State State)
     {
-        HashSet<LR0Item> stateItems2 = new HashSet<LR0Item>();
-        foreach (LR0Item i in stateItems)
-            stateItems2.Add(i);
+        //make copy of transitions dictionary in State
+        Dictionary<string, HashSet<LR0Item>> transitions = new Dictionary<string, HashSet<LR0Item>>();
 
-        List<LR0Item> toConsider = stateItems.ToList();
+        //add new transitions if not in dict
+        foreach (LR0Item item in State.Items)
+        {
+            if(!item.DposAtEnd())
+            {
+                string sym = item.Rhs[item.Dpos];
+                if (!transitions.ContainsKey(sym))
+                    transitions.Add(sym, new HashSet<LR0Item>());
+
+                transitions[sym].Add(new LR0Item(item.Lhs, item.Rhs, item.Dpos + 1));
+            }
+        }
+        //return copy as new Dict
+        return transitions;
+    }
+    private bool checkSeen(HashSet<LR0Item> hash, Dictionary<HashSet<LR0Item>, State> seenMap)
+    {
+        EQ checker = new EQ();
+        foreach(KeyValuePair<HashSet<LR0Item>, State> pair in seenMap)
+        {
+            if (checker.Equals(hash, pair.Key))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    private void printSeenMap(Dictionary<HashSet<LR0Item>, State> seenMap)
+    {
+        Console.WriteLine("Seen map contains:");
+        foreach(KeyValuePair<HashSet<LR0Item>, State> keyPair in seenMap)
+        {
+            Console.WriteLine("\tHashSet Contains Items: "); keyPair.Value.printHashSet();
+        }
+        Console.WriteLine("------------------------------------");
+    }
+    private void computeClosure(HashSet<LR0Item> stateItems)
+    {
         int stateIndex = 0;
+        List<LR0Item> toConsider = stateItems.ToList();
 
         while (stateIndex < toConsider.Count)
         {
@@ -934,51 +984,29 @@ public class compiler
                     foreach (string p in productionDict[sym].productions)
                     {
                         LR0Item item2 = new LR0Item(sym, getProductionAsList(p), 0);
-                        if (!stateItems2.Contains(item2))
+                        if (!stateItems.Contains(item2))
                         {
-                            stateItems2.Add(item2);
+                            stateItems.Add(item2);
                             toConsider.Add(item2);
                         }
                     }
                 }
             }
         }
-        return stateItems2;
-    }
-    private Dictionary<string, HashSet<LR0Item>> computeTransitions(State State)
-    {
-        //make copy of transitions dictionary in State
-        Dictionary<string, HashSet<LR0Item>> transitions = new Dictionary<string, HashSet<LR0Item>>();
-
-        //add new transitions if not in dict
-        foreach (LR0Item item in State.Items)
-        {
-            if(!item.DposAtEnd())
-            {
-                string sym = item.Rhs[item.Dpos];
-                if(!transitions.ContainsKey(sym))
-                    transitions.Add(sym, new HashSet<LR0Item>());
-
-                transitions[sym].Add(new LR0Item(item.Lhs, item.Rhs, item.Dpos + 1));
-            }
-        }
-        //return copy as new Dict
-        return transitions;
     }
     private void addStates(State state, Dictionary<string, HashSet<LR0Item>>  transitions, Dictionary<HashSet<LR0Item>, State> seen, Stack<State> todo)
     {
         foreach (KeyValuePair<string, HashSet<LR0Item>> key in transitions)
         {
-            HashSet<LR0Item> Item2 = computeClosure(key.Value);
-
-            if (!seen.ContainsKey(Item2))
+            computeClosure(key.Value);
+            if (!checkSeen(key.Value, seen))
             {
-                State state2 = new State();
-                state2.Items = Item2;
-                seen.Add(Item2, state2);
-                todo.Push(state2);
+                State newState = new State();
+                newState.Items = key.Value;
+                seen.Add(key.Value, newState);
+                todo.Push(newState);
             }
-            state.Transitions[key.Key] = seen[Item2];
+            state.Transitions[key.Key] = seen[key.Value];
         }
     }
 }
@@ -1011,6 +1039,7 @@ public class Compiler
     public static State makelr0dfa(string gFile)
     {
         c = new compiler(gFile, null, 1);
+        c.dumpLR_DFA();
         return c.getLR0_DFA();
     }
 }
