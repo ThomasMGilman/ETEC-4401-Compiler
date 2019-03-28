@@ -1,0 +1,10 @@
+if -> \bif\b
+= -> =
+x -> \d+
+id -> \w+
+; -> ;
+( -> \(
+) -> \)
+
+S -> S stmt | lambda
+stmt -> id ( x ) ; | id = stmt ; | x ;

@@ -34,7 +34,6 @@ namespace Test {
             var root = Compiler.compile(gfile,ifile);
             dumpTree("tree.dot",root);
         }
-         
 
         static void dumpTree<T>(string fname, T root){
 
