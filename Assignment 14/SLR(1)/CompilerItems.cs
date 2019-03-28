@@ -185,12 +185,13 @@ public class State
 {
     public HashSet<LR0Item> Items;
     public Dictionary<string, State> Transitions;
-    public int index;
+    public readonly int index;
+    private static int sCounter = 0;
     public State()
     {
         Items = new HashSet<LR0Item>();
         Transitions = new Dictionary<string, State>();
-        index = 0;
+        index = sCounter++;
     }
     public void printHashSet()
     {
@@ -222,6 +223,12 @@ public class State
         //Console.WriteLine("Wrote:\n[\n{0}]", states);
 
         return states;
+    }
+    public void printItems()
+    {
+        Console.WriteLine("State{0} items:", this.index);
+        foreach (LR0Item i in Items)
+            Console.WriteLine("\t{0}",i.ToString());
     }
 }
 

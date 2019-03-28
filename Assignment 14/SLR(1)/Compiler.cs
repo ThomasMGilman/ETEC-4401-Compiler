@@ -929,11 +929,10 @@ public class compiler
         LR0Item start = new LR0Item("S'", new List<string> { "S" }, 0);
         Dictionary<HashSet<LR0Item>, State> seen = new Dictionary<HashSet<LR0Item>, State>(new EQ());
         Stack<State> todo = new Stack<State>();
-        int stateIndex = 0;
+        
 
         startState.Items.Add(start);
         computeClosure(startState.Items);
-        startState.index = stateIndex; stateIndex++;
 
         states.Add(startState);
         seen.Add(startState.Items, startState);
@@ -943,9 +942,10 @@ public class compiler
         {
             State Q = todo.Pop();
             Dictionary<string, HashSet<LR0Item>> transitions = computeTransitions(Q);
-            addStates(Q, transitions, seen, todo, stateIndex);
+            addStates(Q, transitions, seen, todo);
         }
 
+        printSeenMap(seen);
         computeSLRTable();
         printLRTable();
         if (this.inputFile != null)
@@ -1019,7 +1019,7 @@ public class compiler
             }
         }
     }
-    private void addStates(State state, Dictionary<string, HashSet<LR0Item>>  transitions, Dictionary<HashSet<LR0Item>, State> seen, Stack<State> todo, int stateIndex)
+    private void addStates(State state, Dictionary<string, HashSet<LR0Item>>  transitions, Dictionary<HashSet<LR0Item>, State> seen, Stack<State> todo)
     {
         foreach (KeyValuePair<string, HashSet<LR0Item>> key in transitions)
         {
@@ -1028,8 +1028,6 @@ public class compiler
             {
                 State newState = new State();
                 newState.Items = key.Value;
-                newState.index = stateIndex;
-                stateIndex++;
 
                 states.Add(newState);
                 seen.Add(key.Value, newState);
@@ -1043,11 +1041,12 @@ public class compiler
     {
         foreach(State s in states)
         {
+            s.printItems();
             Dictionary<string, Tuple<string, int, string>> row = new Dictionary<string, Tuple<string, int, string>>();
             Tuple<string, int, string> tuple;
             foreach (KeyValuePair<string, State> t in s.Transitions)
             {
-                if (!productionDict.ContainsKey(t.Key)) //symbol is not a nonterminal
+                if (!productionDict.ContainsKey(t.Key)) //symbol is terminal
                     tuple = new Tuple<string, int, string>("S", s.Transitions[t.Key].index, "");
                 else
                     tuple = new Tuple<string, int, string>("T", s.Transitions[t.Key].index, "");
@@ -1080,59 +1079,81 @@ public class compiler
     {
         Stack<int> stateStack = new Stack<int>();
         Stack<TreeNode> nodeStack = new Stack<TreeNode>();
-
-        productionTreeRoot = new TreeNode("S'");
-        
-        nodeStack.Push(new TreeNode("$"));
-        nodeStack.Push(productionTreeRoot);
-        stateStack.Push(0);
-
         int tokenIndex = 0;
 
-        while(tokenIndex <= tokens.Count)
+        stateStack.Push(0);
+
+        try
         {
-            int s = stateStack.Peek();
-            string t;
+            while (true)
+            {
+                int s = stateStack.Peek();
+                string t;
+                if (tokenIndex < tokens.Count)
+                    t = "$";
+                else
+                    t = tokens[tokenIndex].Symbol;
 
-            if (tokenIndex == tokens.Count)
-                t = "$";
-            else
-                t = tokens[tokenIndex].Symbol;
-            
-            if(!LRTable[s].ContainsKey(t))
-            {
-                throw new Exception("Syntax Error!! State:\n'" + states[s].ToString() + "'\nNo Entry for Token:'" + t + "'");
-            }
-            Tuple<string, int, string> action = LRTable[s][t];
-            if(action.Item1 == "S") //Shift
-            {
-                stateStack.Push( action.Item2 );
-                nodeStack.Push(new TreeNode(t, tokens[tokenIndex]));
-                tokenIndex++;
-            }
-            else                    //Reduce
-            {
-                int numPop      = action.Item2;
-                string reduceTo = action.Item3;
-                TreeNode n = new TreeNode(reduceTo);
+                if (!LRTable[s].ContainsKey(t))
+                    throw new Exception("Syntax Error!! State:\n'" + states[s].ToString() + "'\nNo Entry for Token:'" + t + "'");
+                else
+                {
+                    Tuple<string, int, string> action = LRTable[s][t];
+                    Console.WriteLine("Action: {0}, {1}, {2}", action.Item1, action.Item2, action.Item3);
 
-                while(numPop-- > 0)
-                {
-                    stateStack.Pop();
-                    n.Children.Insert(0, nodeStack.Pop());
+                    if (action.Item1 == "S") //Shift
+                    {
+                        stateStack.Push(action.Item2);
+                        nodeStack.Push(new TreeNode(t, tokens[tokenIndex]));
+                        if (tokenIndex < tokens.Count())
+                            Console.WriteLine("\tShift Item2:'{0}' Node:'{1}' TokenLex:'{2}'", action.Item2, t, tokens[tokenIndex].Lexeme);
+                        tokenIndex++;
+                    }
+                    else                    //Reduce
+                    {
+                        TreeNode n = new TreeNode(action.Item3); //Reduce to Symbol
+
+                        Console.WriteLine("Popping {0} items:", action.Item2);
+                        for(int popNum = 0; popNum < action.Item2; popNum++)
+                        {
+                            stateStack.Pop();
+                            Console.WriteLine("\tPop: {0}, {1}", nodeStack.Peek().Symbol, nodeStack.Peek().Token.Symbol);
+                            n.Children.Insert(0, nodeStack.Pop());
+                        }
+                        Console.WriteLine("Reduced To: {0}", action.Item3);
+                        if (action.Item3 == "S'")
+                        {
+                            if (tokenIndex == tokens.Count && t == "$")
+                                return;
+                            else
+                                throw new Exception("Compiler Error!!! " +
+                                    "Token is either not at the end or symbol is not '$'\n" +
+                                    "Token index: '" + tokenIndex + "', Token:'" + t + "'");
+                        }
+
+                        stateStack.Push(LRTable[stateStack.Peek()][action.Item3].Item2);
+                        nodeStack.Push(n);
+                    }
                 }
-                if(action.Item3 == "S'")
-                {
-                    if (t == "$")
-                        break;
-                    else
-                        throw new Exception("Compiler Error!!! " +
-                            "Token is either not at the end or symbol is not '$'\n" +
-                            "Token index: '"+ tokenIndex +"', Token:'" + t + "'");
-                }
-                stateStack.Push(LRTable[stateStack.Peek()][reduceTo].Item2);
-                nodeStack.Push(n);
             }
+        }
+        catch(Exception e)
+        {
+            Console.WriteLine("ERROR: " + e.Message);
+            int stackCount = stateStack.Count;
+            Console.WriteLine("\tStateStack Contents:");
+            while(stackCount-- > 0)
+                Console.WriteLine("\t\t"+stateStack.Pop().ToString());
+            stackCount = nodeStack.Count;
+            Console.WriteLine("\tNodeStack Contents:");
+            while (stackCount-- > 0)
+            {
+                TreeNode node = nodeStack.Pop();
+                Console.Write("\t\t{0}", node.Symbol);
+                if (node.Token != null)
+                    Console.WriteLine(": {1} {2}", node.Token.Symbol, node.Token.Lexeme);
+            }
+            throw new Exception(e.Message);
         }
     }
 }
