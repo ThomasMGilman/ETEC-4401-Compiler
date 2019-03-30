@@ -311,6 +311,11 @@ class LLdot
     }
 }
 
+/*
+ * class functions for walk, shuffle, dumpText, and dumpDot written by James Hudson.
+ * called by compiler class inorder to create a .dot file for viewing in graphviz or other similar program.
+ * dumpdot was modified, to call State.ToString() inorder to create the .dot node names
+ */
 class LRdot
 {
     public LRdot(State startState, string gfile)
