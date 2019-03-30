@@ -15,6 +15,12 @@ public struct Terminal
     public Regex nonTerminal;
 }
 
+public struct LR_Transition
+{
+    char sym;
+    int index;
+}
+
 public class Token
 {
     public string Symbol;
@@ -179,10 +185,13 @@ public class State
 {
     public HashSet<LR0Item> Items;
     public Dictionary<string, State> Transitions;
+    public readonly int index;
+    private static int sCounter = 0;
     public State()
     {
         Items = new HashSet<LR0Item>();
         Transitions = new Dictionary<string, State>();
+        index = sCounter++;
     }
     public void printHashSet()
     {
@@ -215,6 +224,12 @@ public class State
 
         return states;
     }
+    public void printItems()
+    {
+        Console.WriteLine("State{0} items:", this.index);
+        foreach (LR0Item i in Items)
+            Console.WriteLine("\t{0}",i.ToString());
+    }
 }
 
 public class TreeNode
@@ -223,9 +238,11 @@ public class TreeNode
     public Token Token = null;
     public List<TreeNode> Children;
 
-    public TreeNode(string Symbol)
+    public TreeNode(string Symbol, Token t = null)
     {
         this.Symbol = Symbol;
+        if (t != null)
+            this.Token = t;
         Children = new List<TreeNode>();
     }
 }

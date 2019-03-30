@@ -1,7 +1,7 @@
 ﻿//Thomas Gilman
 //Jim Hudson
 //ETEC 4401 Compiler
-// 12th February, 2019
+// 26th March, 2019
 using System;
 using System.Text;
 using System.Collections.Generic;
@@ -17,12 +17,14 @@ public class compiler
     static private List<Terminal> terminals;
     static private List<Token> tokens;
     static private List<Production> productions;
+    static private List<State> states;
     static private TreeNode productionTreeRoot = null;
     static private State startState = null;
     static private HashSet<string> nullables;
     static private Dictionary<string, Production> productionDict;
     static private Dictionary<string, HashSet<string>> Follows;
     static private Dictionary<string, Dictionary<string, HashSet<string>>> LLTable;
+    static private List<Dictionary<string, Tuple<string, int, string>>> LRTable;
     static private int currentLineNum;
 
     public compiler(string grammarFile, string inputFile = null, int cType = 0)
@@ -34,6 +36,9 @@ public class compiler
         if (this.grammarFile != null)
         {
             init(grammarFile, inputFile);
+            if (this.inputFile != null)
+                TokenizeInputFile();
+
             switch (cType)
             {
                 case (0):               //LL_Grammar
@@ -47,12 +52,6 @@ public class compiler
         }
         else
             throw new Exception("ERROR!!!! Did not pass a Grammar File!!");
-
-        if (this.inputFile != null)
-        {
-            TokenizeInputFile();
-            computeTree();
-        }
     }
 
     private void init(string grammarFile, string inputFile)
@@ -67,8 +66,14 @@ public class compiler
         productionDict = new Dictionary<string, Production>();
         Follows = new Dictionary<string, HashSet<string>>();
         LLTable = new Dictionary<string, Dictionary<string, HashSet<string>>>();
+        LRTable = new List<Dictionary<string, Tuple<string, int, string>>>();
         productionTreeRoot = null;
         currentLineNum = 0;
+
+        setTerminals();
+        computeNullables();
+        computeAllFirsts();
+        computeFollows();
     }
     private void setTerminals()
     {
@@ -268,7 +273,7 @@ public class compiler
     public TreeNode getTree()
     {
         if (productionTreeRoot == null)
-            computeTree();
+            computeLLTree();
         return productionTreeRoot;
     }
     public HashSet<string> getNullables()
@@ -458,6 +463,19 @@ public class compiler
         if (productionTreeRoot != null && inputFile != null && grammarFile != null)
             LLdot.dumpIt(productionTreeRoot);
     }
+    public void printLRTable()
+    {
+        int row = 0;
+        foreach(Dictionary<string, Tuple<string, int, string>> keyValuePairs in LRTable)
+        {
+            Console.WriteLine("Row {0}:", row++);
+            foreach(KeyValuePair<string, Tuple<string, int, string>> keyValuePair in keyValuePairs)
+            {
+                Console.WriteLine("\t{0} : '{1} {2} {3}'", keyValuePair.Key,
+                    keyValuePair.Value.Item1, keyValuePair.Value.Item2, keyValuePair.Value.Item3);
+            }
+        }
+    }
     public void dumpLR_DFA()
     {
         if (startState != null)
@@ -468,15 +486,13 @@ public class compiler
             throw new Exception("User Error, did not specify the use of an LR Compiler.\nattempted to output a LR_DFA without a LR(0) Start State!!");
     }
 
-
     //LL(0) Stuff
     private void LL_Grammar_Proc()
     {
-        setTerminals();
-        computeNullables();
-        computeAllFirsts();
-        computeFollows();
-        computeTable();
+        computeLLTable();
+
+        if (this.inputFile != null)
+            computeLLTree();
 
         //Test Prints
         /*
@@ -796,7 +812,7 @@ public class compiler
         }
         return Product;
     }
-    private void computeTable()
+    private void computeLLTable()
     {
         foreach (Production p in productions)
         {
@@ -821,7 +837,7 @@ public class compiler
             LLTable.Add(p.lhs, entry);
         }
     }
-    private int computeTree()
+    private int computeLLTree()
     {
         LinkedList<TreeNode> stack = new LinkedList<TreeNode>();
         TreeNode stacktop;
@@ -908,14 +924,17 @@ public class compiler
     private void LR_Grammar_Proc()
     {
         //create Start State
-        setTerminals();
+        states = new List<State>();
         startState = new State();
         LR0Item start = new LR0Item("S'", new List<string> { "S" }, 0);
         Dictionary<HashSet<LR0Item>, State> seen = new Dictionary<HashSet<LR0Item>, State>(new EQ());
         Stack<State> todo = new Stack<State>();
+        
 
         startState.Items.Add(start);
         computeClosure(startState.Items);
+
+        states.Add(startState);
         seen.Add(startState.Items, startState);
         todo.Push(startState);
 
@@ -925,6 +944,12 @@ public class compiler
             Dictionary<string, HashSet<LR0Item>> transitions = computeTransitions(Q);
             addStates(Q, transitions, seen, todo);
         }
+
+        printSeenMap(seen);
+        computeSLRTable();
+        printLRTable();
+        if (this.inputFile != null)
+            SLR_Parse();
     }
     private Dictionary<string, HashSet<LR0Item>> computeTransitions(State State)
     {
@@ -1003,10 +1028,132 @@ public class compiler
             {
                 State newState = new State();
                 newState.Items = key.Value;
+
+                states.Add(newState);
                 seen.Add(key.Value, newState);
                 todo.Push(newState);
             }
             state.Transitions[key.Key] = seen[key.Value];
+        }
+    }
+
+    private void computeSLRTable()
+    {
+        foreach(State s in states)
+        {
+            s.printItems();
+            Dictionary<string, Tuple<string, int, string>> row = new Dictionary<string, Tuple<string, int, string>>();
+            Tuple<string, int, string> tuple;
+            foreach (KeyValuePair<string, State> t in s.Transitions)
+            {
+                if (!productionDict.ContainsKey(t.Key)) //symbol is terminal
+                    tuple = new Tuple<string, int, string>("S", s.Transitions[t.Key].index, "");
+                else
+                    tuple = new Tuple<string, int, string>("T", s.Transitions[t.Key].index, "");
+
+                row.Add(t.Key, tuple);
+            }
+            foreach(LR0Item item in s.Items)
+            {
+                if(item.DposAtEnd()) //the item is at the end of rhs
+                {
+                    if(item.Lhs == "S'")
+                    {
+                        tuple = new Tuple<string, int, string>("R", item.Rhs.Count, item.Lhs);
+                        row.Add("$", tuple);
+                    }
+                    else
+                    {
+                        foreach (string follow in Follows[item.Lhs])
+                        {
+                            tuple = new Tuple<string, int, string>("R", item.Rhs.Count, item.Lhs);
+                            row.Add(follow, tuple);
+                        }
+                    }
+                }
+            }
+            LRTable.Add(row);
+        }
+    }
+    private void SLR_Parse()
+    {
+        Stack<int> stateStack = new Stack<int>();
+        Stack<TreeNode> nodeStack = new Stack<TreeNode>();
+        int tokenIndex = 0;
+
+        stateStack.Push(0);
+
+        try
+        {
+            while (true)
+            {
+                int s = stateStack.Peek();
+                string t;
+                if (tokenIndex < tokens.Count)
+                    t = "$";
+                else
+                    t = tokens[tokenIndex].Symbol;
+
+                if (!LRTable[s].ContainsKey(t))
+                    throw new Exception("Syntax Error!! State:\n'" + states[s].ToString() + "'\nNo Entry for Token:'" + t + "'");
+                else
+                {
+                    Tuple<string, int, string> action = LRTable[s][t];
+                    Console.WriteLine("Action: {0}, {1}, {2}", action.Item1, action.Item2, action.Item3);
+
+                    if (action.Item1 == "S") //Shift
+                    {
+                        stateStack.Push(action.Item2);
+                        nodeStack.Push(new TreeNode(t, tokens[tokenIndex]));
+                        if (tokenIndex < tokens.Count())
+                            Console.WriteLine("\tShift Item2:'{0}' Node:'{1}' TokenLex:'{2}'", action.Item2, t, tokens[tokenIndex].Lexeme);
+                        tokenIndex++;
+                    }
+                    else                    //Reduce
+                    {
+                        TreeNode n = new TreeNode(action.Item3); //Reduce to Symbol
+
+                        Console.WriteLine("Popping {0} items:", action.Item2);
+                        for(int popNum = 0; popNum < action.Item2; popNum++)
+                        {
+                            stateStack.Pop();
+                            Console.WriteLine("\tPop: {0}, {1}", nodeStack.Peek().Symbol, nodeStack.Peek().Token.Symbol);
+                            n.Children.Insert(0, nodeStack.Pop());
+                        }
+                        Console.WriteLine("Reduced To: {0}", action.Item3);
+                        if (action.Item3 == "S'")
+                        {
+                            if (tokenIndex == tokens.Count && t == "$")
+                                return;
+                            else
+                                throw new Exception("Compiler Error!!! " +
+                                    "Token is either not at the end or symbol is not '$'\n" +
+                                    "Token index: '" + tokenIndex + "', Token:'" + t + "'");
+                        }
+
+                        stateStack.Push(LRTable[stateStack.Peek()][action.Item3].Item2);
+                        nodeStack.Push(n);
+                    }
+                }
+            }
+        }
+        catch(Exception e)
+        {
+            Console.WriteLine("ERROR: " + e.Message);
+            int stackCount = stateStack.Count;
+            Console.WriteLine("\tStateStack Contents:");
+            while(stackCount-- > 0)
+                Console.WriteLine("\t\t"+stateStack.Pop().ToString());
+            stackCount = nodeStack.Count;
+            Console.WriteLine("\tNodeStack Contents:");
+            while (stackCount-- > 0)
+            {
+                TreeNode node = nodeStack.Pop();
+                Console.Write("\t\t{0}", node.Symbol);
+                if (node.Token != null)
+                    Console.WriteLine(": {1} {2}", node.Token.Symbol, node.Token.Lexeme);
+            }
+            throw new Exception(e.Message);
         }
     }
 }
@@ -1036,10 +1183,14 @@ public class Compiler
         c = new compiler(gFile, iFile);
         return c.getTree();
     }
-    public static State makelr0dfa(string gFile)
+    public static TreeNode compile(string gFile, string iFile)
+    {
+        c = new compiler(gFile, iFile, 1);
+        return c.getTree();
+    }
+    public static void makelr0dfa(string gFile)
     {
         c = new compiler(gFile, null, 1);
         c.dumpLR_DFA();
-        return c.getLR0_DFA();
     }
 }
