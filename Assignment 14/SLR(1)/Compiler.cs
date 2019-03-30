@@ -948,6 +948,7 @@ public class compiler
         printSeenMap(seen);
         computeSLRTable();
         printLRTable();
+        //LRdot dot = new LRdot(startState, grammarFile);
         if (this.inputFile != null)
             SLR_Parse();
     }
@@ -1089,7 +1090,7 @@ public class compiler
             {
                 int s = stateStack.Peek();
                 string t;
-                if (tokenIndex < tokens.Count)
+                if (tokenIndex == tokens.Count)
                     t = "$";
                 else
                     t = tokens[tokenIndex].Symbol;
@@ -1116,15 +1117,18 @@ public class compiler
                         Console.WriteLine("Popping {0} items:", action.Item2);
                         for(int popNum = 0; popNum < action.Item2; popNum++)
                         {
+                            Console.WriteLine("\tPop: {0}\t: {1}, {2}", stateStack.Peek(), nodeStack.Peek().Symbol, nodeStack.Peek().Token == null ? "null" : nodeStack.Peek().Token.Lexeme);
                             stateStack.Pop();
-                            Console.WriteLine("\tPop: {0}, {1}", nodeStack.Peek().Symbol, nodeStack.Peek().Token.Symbol);
                             n.Children.Insert(0, nodeStack.Pop());
                         }
                         Console.WriteLine("Reduced To: {0}", action.Item3);
                         if (action.Item3 == "S'")
                         {
                             if (tokenIndex == tokens.Count && t == "$")
+                            {
+                                productionTreeRoot = n;
                                 return;
+                            }
                             else
                                 throw new Exception("Compiler Error!!! " +
                                     "Token is either not at the end or symbol is not '$'\n" +

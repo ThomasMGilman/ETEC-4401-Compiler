@@ -346,7 +346,7 @@ class LRdot
         var f = System.IO.Path.GetFileName(gfile);
 
         dumpText(f.Replace(".txt", "-dfa.txt"), startState, nmap);
-        dumpDot(f.Replace(".txt", "-dfa.dot"), startState, nmap);
+        dumpDot(f.Replace(".txt", "-dfa.d"), startState, nmap);
     }
     static void dumpText<T>(string fname, T startState, Dictionary<dynamic, int> nmap)
     {
@@ -414,7 +414,6 @@ class LRdot
                 {
                     string sym = keyvalue.Key;
                     dynamic node2 = keyvalue.Value;
-                    wr.WriteLine("//writing here");
                     wr.Write(n.ToString()+"->" + node2.ToString() + " [label=\"" + sym + "\"];\n");
                 }
             });
