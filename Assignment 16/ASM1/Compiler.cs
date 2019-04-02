@@ -18,9 +18,8 @@ public class compiler
     static private List<Token> tokens;
     static private List<Production> productions;
     static private List<State> states;
-    static private List<string> asmCode;
-    static private TreeNode productionTreeRoot = null;
-    static private State startState = null;
+    static private TreeNode productionTreeRoot;
+    static private State startState;
     static private HashSet<string> nullables;
     static private Dictionary<string, Production> productionDict;
     static private Dictionary<string, HashSet<string>> Follows;
@@ -60,8 +59,8 @@ public class compiler
         productionDict = new Dictionary<string, Production>();
         Follows = new Dictionary<string, HashSet<string>>();
         LLTable = new Dictionary<string, Dictionary<string, HashSet<string>>>();
-        LRTable = new List<Dictionary<string, Tuple<string, int, string>>>();
         productionTreeRoot = null;
+        startState = null;
         currentLineNum = 0;
 
         setTerminals();
@@ -73,6 +72,7 @@ public class compiler
             TokenizeInputFile();
 
         printTerminals();
+        printProductions();
         printTokens();
     }
     private void setTerminals()
@@ -142,7 +142,7 @@ public class compiler
                 midIndex = middle.Match(line).Index;
                 var mid = middle.Match(line);
                 var terminal = line.Substring(0, midIndex).Trim();
-                var rhs = line.Substring(midIndex + mid.Length);
+                var rhs = line.Substring(midIndex + mid.Length).Trim();
 
                 Production newP = new Production(terminal, rhs, currentLineNum);
                 //Console.WriteLine("Line: {0} adding {1} -> {2}", currentLineNum, terminal, rhs);
@@ -248,10 +248,13 @@ public class compiler
                     var lex = t.nonTerminal.Match(input, index);
                     if (lex.Success && lex.Index == index)
                     {
-                        Token newT = new Token(t.terminal, lex.ToString(), lineNum);
                         index += lex.Length;
                         tokenized = true;
-                        tokens.Add(newT);
+                        if (t.terminal != "COMMENT")
+                        {
+                            Token newT = new Token(t.terminal, lex.ToString(), lineNum);
+                            tokens.Add(newT);
+                        }
                     }
                 }
                 if (tokenized == false)
@@ -936,10 +939,10 @@ public class compiler
         //create Start State
         states = new List<State>();
         startState = new State();
-        LR0Item start = new LR0Item("S'", new List<string> { "S" }, 0);
+        LR0Item start = new LR0Item("S'", new List<string> { "program" }, 0);
+        LRTable = new List<Dictionary<string, Tuple<string, int, string>>>();
         Dictionary<HashSet<LR0Item>, State> seen = new Dictionary<HashSet<LR0Item>, State>(new EQ());
         Stack<State> todo = new Stack<State>();
-        
 
         startState.Items.Add(start);
         computeClosure(startState.Items);
@@ -955,7 +958,7 @@ public class compiler
             addStates(Q, transitions, seen, todo);
         }
 
-        printSeenMap(seen);
+        //printSeenMap(seen);
         computeSLRTable();
         printLRTable();
         //LRdot dot = new LRdot(startState, grammarFile);
@@ -975,8 +978,9 @@ public class compiler
                 string sym = item.Rhs[item.Dpos];
                 if (!transitions.ContainsKey(sym))
                     transitions.Add(sym, new HashSet<LR0Item>());
-
-                transitions[sym].Add(new LR0Item(item.Lhs, item.Rhs, item.Dpos + 1));
+                LR0Item newItem = new LR0Item(item.Lhs, item.Rhs, item.Dpos + 1);
+                Console.WriteLine("adding production rhsLen:"+newItem.Rhs.Count+" " + newItem.ToString());
+                transitions[sym].Add(newItem);
             }
         }
         //return copy as new Dict
@@ -1052,15 +1056,15 @@ public class compiler
     {
         foreach(State s in states)
         {
-            s.printItems();
+            //s.printItems();
             Dictionary<string, Tuple<string, int, string>> row = new Dictionary<string, Tuple<string, int, string>>();
             Tuple<string, int, string> tuple;
             foreach (KeyValuePair<string, State> t in s.Transitions)
             {
                 if (!productionDict.ContainsKey(t.Key)) //symbol is terminal
-                    tuple = new Tuple<string, int, string>("S", s.Transitions[t.Key].index, "");
+                    tuple = new Tuple<string, int, string>("S", t.Value.index, "");
                 else
-                    tuple = new Tuple<string, int, string>("T", s.Transitions[t.Key].index, "");
+                    tuple = new Tuple<string, int, string>("T", t.Value.index, "");
 
                 row.Add(t.Key, tuple);
             }
@@ -1153,14 +1157,14 @@ public class compiler
         }
         catch(Exception e)
         {
-            Console.WriteLine("ERROR: " + e.Message);
+            Console.WriteLine("Line:{0} ERROR: " + e.Message, e.Source);
             int stackCount = stateStack.Count;
             Console.WriteLine("\tStateStack Contents:");
             while(stackCount-- > 0)
                 Console.WriteLine("\t\t"+stateStack.Pop().ToString());
             stackCount = nodeStack.Count;
             Console.WriteLine("\tNodeStack Contents:");
-            while (stackCount-- > 0)
+            while (stackCount-- >= 0)
             {
                 TreeNode node = nodeStack.Pop();
                 Console.Write("\t\t{0}", node.Symbol);
@@ -1174,7 +1178,7 @@ public class compiler
     //Assembly stuff
     public List<string> generateAssembly()
     {
-        Assembler asmblr = new Assembler(productionTreeRoot);
+        Assembler asmblr = new Assembler(productionTreeRoot.Children[0]);
         return asmblr.getASM();
     }
 }
@@ -1214,10 +1218,10 @@ public class Compiler
         c = new compiler(null, srcfile, 1);
         List<string> asm = c.generateAssembly();
         string asmText = "";
-        string curDir = Environment.CurrentDirectory;
-        string aFile = Path.Combine(curDir, asmfile);
-        string oFile = Path.Combine(curDir, objfile);
-        string eFile = Path.Combine(curDir, exefile);
+        //string curDir = Environment.CurrentDirectory;
+        string aFile = asmfile;
+        string oFile = objfile;
+        string eFile = exefile;
 
         for (int i = 0; i < asm.Count; i++) //convert to string array
         {
@@ -1227,7 +1231,9 @@ public class Compiler
         }
         File.WriteAllText(aFile, asmText);
         ExeTools.ExeTools.Assemble(aFile, oFile);
+        Console.WriteLine("Got objectFile: {0}", oFile);
         ExeTools.ExeTools.Link(oFile, eFile);
+        Console.WriteLine("Got exeFile: {0}", eFile);
     }
     public static void makelr0dfa(string gFile)
     {

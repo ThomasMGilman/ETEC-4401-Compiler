@@ -33,7 +33,7 @@ public class Assembler
         emit("global main");
         emit("main:");
         emit("call theRealMain");
-        emit("moveq xmm0, rax");
+        emit("movq xmm0, rax");
         emit("cvtsd2si rax,xmm0");
         emit("ret");
         emit("theRealMain:");

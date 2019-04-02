@@ -25,7 +25,7 @@ namespace ExeTools
                 }
                 args = string.Join(" ", argsA);
             }
-            //Console.WriteLine(cmd+" "+args);
+            //Console.WriteLine("input:"+input+"\ncmd:"+cmd+"\nargs:"+args);
             var si = new ProcessStartInfo();
             si.FileName = cmd;
             si.Arguments = args;

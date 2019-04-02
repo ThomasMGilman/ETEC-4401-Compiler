@@ -12,10 +12,10 @@ namespace Test {
     {
         public static void Main(string[] args)
         {
-            string srcfile = Path.Combine(Environment.CurrentDirectory,"xyz.txt");
-            string asmfile = Path.Combine(Environment.CurrentDirectory,"xyz.asm");
-            string objfile = Path.Combine(Environment.CurrentDirectory,"xyz.o");
-            string exefile = Path.Combine(Environment.CurrentDirectory,"xyz.exe");
+            string srcfile = "xyz.txt";
+            string asmfile = "xyz.asm";
+            string objfile = "xyz.o";
+            string exefile = "xyz.exe";
 
             var inputfile = "inputs.txt";
             Console.WriteLine("Working directory: " + Environment.CurrentDirectory);

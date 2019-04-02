@@ -1,0 +1,29 @@
+Tokens:
+        line:' 0 ', Sym:' COMMENT ', Lex:' //34 '
+        line:' 1 ', Sym:' LBR ', Lex:' { '
+        line:' 2 ', Sym:' IF ', Lex:' if '
+        line:' 2 ', Sym:' LP ', Lex:' ( '
+        line:' 2 ', Sym:' NUM ', Lex:' 12 '
+        line:' 2 ', Sym:' RP ', Lex:' ) '
+        line:' 2 ', Sym:' LBR ', Lex:' { '
+        line:' 3 ', Sym:' RETURN ', Lex:' return '
+        line:' 3 ', Sym:' NUM ', Lex:' 34 '
+        line:' 3 ', Sym:' SEMI ', Lex:' ; '
+        line:' 4 ', Sym:' RBR ', Lex:' } '
+        line:' 4 ', Sym:' ELSE ', Lex:' else '
+        line:' 4 ', Sym:' LBR ', Lex:' { '
+        line:' 5 ', Sym:' RETURN ', Lex:' return '
+        line:' 5 ', Sym:' NUM ', Lex:' 78 '
+        line:' 5 ', Sym:' SEMI ', Lex:' ; '
+        line:' 6 ', Sym:' RBR ', Lex:' } '
+        line:' 7 ', Sym:' RETURN ', Lex:' return '
+        line:' 7 ', Sym:' NUM ', Lex:' 56 '
+        line:' 7 ', Sym:' SEMI ', Lex:' ; '
+        line:' 8 ', Sym:' RBR ', Lex:' } '
+		
+Seen map contains:
+        HashSet Contains Items:
+        S' -> *S
+
+        HashSet Contains Items:
+        S' -> S *
