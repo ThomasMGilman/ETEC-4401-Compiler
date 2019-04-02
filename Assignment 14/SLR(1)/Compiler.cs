@@ -945,9 +945,10 @@ public class compiler
             addStates(Q, transitions, seen, todo);
         }
 
-        printSeenMap(seen);
         computeSLRTable();
-        printLRTable();
+
+        //printSeenMap(seen);
+        //printLRTable();
         //LRdot dot = new LRdot(startState, grammarFile);
         if (this.inputFile != null)
             SLR_Parse();
@@ -1153,9 +1154,7 @@ public class compiler
             while (stackCount-- > 0)
             {
                 TreeNode node = nodeStack.Pop();
-                Console.Write("\t\t{0}", node.Symbol);
-                if (node.Token != null)
-                    Console.WriteLine(": {1} {2}", node.Token.Symbol, node.Token.Lexeme);
+                Console.Write("\t\t{0} : {1}", node.Symbol, node.Token == null ? "null" : node.Token.Lexeme);
             }
             throw new Exception(e.Message);
         }

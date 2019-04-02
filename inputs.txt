@@ -1,0 +1,53 @@
+//-
+//34
+{
+    if( 12 ){
+        return 34;
+    } else {
+        return 78;
+    }
+    return 56;
+}
+//-
+//78
+{
+    if( 0 ){
+        return 34;
+    } else {
+        return 78;
+    }
+    return 56;
+}
+//-
+//56
+{
+    if( 0 ){
+        return 34;
+    } 
+    return 56;
+}
+//-
+//12
+{
+    while( 123 ){
+        return 12;
+    }
+    return 34;
+}
+//-
+//34
+{
+    while( 0 ){
+        return 12;
+    }
+    return 34;
+}
+//-
+//infinite
+{
+    while( 1 ){
+        if( 0 ) {
+            return 1;
+        }
+    }
+}

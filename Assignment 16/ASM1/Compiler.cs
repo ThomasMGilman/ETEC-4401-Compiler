@@ -35,9 +35,6 @@ public class compiler
         this.inputFile = inputFile;
 
         init(this.grammarFile, inputFile);
-        if (this.inputFile != null)
-            TokenizeInputFile();
-
         switch (cType)
         {
             case (0):               //LL_Grammar
@@ -72,15 +69,20 @@ public class compiler
         computeAllFirsts();
         computeFollows();
 
+        if (this.inputFile != null)
+            TokenizeInputFile();
+
         printTerminals();
+        printTokens();
     }
     private void setTerminals()
     {
         int lineNum = 0;
         string line = grammarLines[lineNum];
+        
         Regex grammarReg;
 
-        while (line.Length != 0)
+        while (line.Trim().Length != 0)
         {
             line = line.Trim();
             int index = middle.Match(line).Index;
@@ -88,6 +90,7 @@ public class compiler
             var rhs = line.Substring(index + mid.Length).Trim();
             var term = line.Substring(0, index).Trim();
 
+            //Console.WriteLine("Reading into Terminal line:{0}, ' {1} '",lineNum, line);
             if (rhs.Length > 0 && term.Length > 0)
             {
                 try
@@ -223,7 +226,7 @@ public class compiler
         StringBuilder sb = new StringBuilder();
 
         foreach (string l in inputLines)
-            sb.Append(l.Trim());
+            sb.Append(l.Trim()+'\n');
         input = sb.ToString();
 
         while (index < input.Length)
@@ -313,6 +316,14 @@ public class compiler
             Console.WriteLine("{0} -> {1}", t.terminal, t.nonTerminal.ToString());
         }
         Console.WriteLine();
+    }
+    public void printTokens()
+    {
+        Console.WriteLine("Tokens:");
+        foreach(Token t in tokens)
+        {
+            Console.WriteLine("\tline:' {0} ', Sym:' {1} ', Lex:' {2} '",t.line, t.Symbol, t.Lexeme);
+        }
     }
     public void printNullableSet()
     {
