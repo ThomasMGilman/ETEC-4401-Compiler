@@ -12,20 +12,20 @@ using System.IO;
 public class compiler
 {
     private string grammarFile, inputFile;
-    static private string[] grammarLines;
-    static private Regex middle;
-    static private List<Terminal> terminals;
-    static private List<Token> tokens;
-    static private List<Production> productions;
-    static private List<State> states;
-    static private TreeNode productionTreeRoot;
-    static private State startState;
-    static private HashSet<string> nullables;
-    static private Dictionary<string, Production> productionDict;
-    static private Dictionary<string, HashSet<string>> Follows;
-    static private Dictionary<string, Dictionary<string, HashSet<string>>> LLTable;
-    static private List<Dictionary<string, Tuple<string, int, string>>> LRTable;
-    static private int currentLineNum;
+    private string[] grammarLines;
+    private Regex middle;
+    private List<Terminal> terminals;
+    private List<Token> tokens;
+    private List<Production> productions;
+    private List<State> states;
+    private TreeNode productionTreeRoot;
+    private State startState;
+    private HashSet<string> nullables;
+    private Dictionary<string, Production> productionDict;
+    private Dictionary<string, HashSet<string>> Follows;
+    private Dictionary<string, Dictionary<string, HashSet<string>>> LLTable;
+    private List<Dictionary<string, Tuple<string, int, string>>> LRTable;
+    private int currentLineNum;
 
     public compiler(string grammarFile = null, string inputFile = null, int cType = 0)
     {
@@ -547,7 +547,7 @@ public class compiler
             }
         }
     }
-    private static Production getProduction(string lhs)
+    private Production getProduction(string lhs)
     {
         if (productionDict.ContainsKey(lhs.Trim()))
             return productionDict[lhs.Trim()];
@@ -938,7 +938,7 @@ public class compiler
     {
         //create Start State
         states = new List<State>();
-        startState = new State();
+        startState = new State(0);
         LR0Item start = new LR0Item("S'", new List<string> { "program" }, 0);
         LRTable = new List<Dictionary<string, Tuple<string, int, string>>>();
         Dictionary<HashSet<LR0Item>, State> seen = new Dictionary<HashSet<LR0Item>, State>(new EQ());
@@ -1108,13 +1108,13 @@ public class compiler
                     t = "$";
                 else
                     t = tokens[tokenIndex].Symbol;
-
+                Console.WriteLine("\nToken{0}: ' {1} ' out of {2} Tokens", tokenIndex, t, tokens.Count);
                 if (!LRTable[s].ContainsKey(t))
                     throw new Exception("Syntax Error!! State:\n'" + states[s].ToString() + "'\nNo Entry for Token:'" + t + "'");
                 else
                 {
                     Tuple<string, int, string> action = LRTable[s][t];
-                    Console.WriteLine("Action: {0}, {1}, {2}", action.Item1, action.Item2, action.Item3);
+                    Console.WriteLine("S:{3} T:{4} \tAction: {0}, {1}, {2}", action.Item1, action.Item2, action.Item3, s, t);
 
                     if (action.Item1 == "S") //Shift
                     {

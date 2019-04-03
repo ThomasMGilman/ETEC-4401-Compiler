@@ -187,11 +187,14 @@ public class State
     public Dictionary<string, State> Transitions;
     public readonly int index;
     private static int sCounter = 0;
-    public State()
+    public State(int cntStart = -1)
     {
+        if (cntStart >= 0)
+            sCounter = cntStart;
+
+        index = sCounter++;
         Items = new HashSet<LR0Item>();
         Transitions = new Dictionary<string, State>();
-        index = sCounter++;
     }
     public void printHashSet()
     {

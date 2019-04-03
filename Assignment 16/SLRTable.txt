@@ -1,0 +1,103 @@
+Row 0:
+        program : 'T 28 '
+        braceblock : 'T 29 '
+        LBR : 'S 30 '
+Row 1:
+        $ : 'R 1 S''
+Row 2:
+        $ : 'R 1 program'
+Row 3:
+        stmts : 'T 31 '
+        stmt : 'T 32 '
+        cond : 'T 33 '
+        loop : 'T 34 '
+        return-stmt : 'T 35 '
+        IF : 'S 36 '
+        WHILE : 'S 37 '
+        RETURN : 'S 38 '
+        RBR : 'R 0 stmts'
+Row 4:
+        RBR : 'S 53 '
+Row 5:
+        stmts : 'T 52 '
+        stmt : 'T 32 '
+        cond : 'T 33 '
+        loop : 'T 34 '
+        return-stmt : 'T 35 '
+        IF : 'S 36 '
+        WHILE : 'S 37 '
+        RETURN : 'S 38 '
+        RBR : 'R 0 stmts'
+Row 6:
+        IF : 'R 1 stmt'
+        WHILE : 'R 1 stmt'
+        RETURN : 'R 1 stmt'
+        RBR : 'R 1 stmt'
+Row 7:
+        IF : 'R 1 stmt'
+        WHILE : 'R 1 stmt'
+        RETURN : 'R 1 stmt'
+        RBR : 'R 1 stmt'
+Row 8:
+        SEMI : 'S 51 '
+Row 9:
+        LP : 'S 45 '
+Row 10:
+        LP : 'S 41 '
+Row 11:
+        expr : 'T 39 '
+        NUM : 'S 40 '
+Row 12:
+        SEMI : 'R 2 return-stmt'
+Row 13:
+        RP : 'R 1 expr'
+        SEMI : 'R 1 expr'
+Row 14:
+        expr : 'T 42 '
+        NUM : 'S 40 '
+Row 15:
+        RP : 'S 43 '
+Row 16:
+        braceblock : 'T 44 '
+        LBR : 'S 30 '
+Row 17:
+        IF : 'R 5 loop'
+        WHILE : 'R 5 loop'
+        RETURN : 'R 5 loop'
+        RBR : 'R 5 loop'
+Row 18:
+        expr : 'T 46 '
+        NUM : 'S 40 '
+Row 19:
+        RP : 'S 47 '
+Row 20:
+        braceblock : 'T 48 '
+        LBR : 'S 30 '
+Row 21:
+        ELSE : 'S 49 '
+        IF : 'R 5 cond'
+        WHILE : 'R 5 cond'
+        RETURN : 'R 5 cond'
+        RBR : 'R 5 cond'
+Row 22:
+        braceblock : 'T 50 '
+        LBR : 'S 30 '
+Row 23:
+        IF : 'R 7 cond'
+        WHILE : 'R 7 cond'
+        RETURN : 'R 7 cond'
+        RBR : 'R 7 cond'
+Row 24:
+        IF : 'R 2 stmt'
+        WHILE : 'R 2 stmt'
+        RETURN : 'R 2 stmt'
+        RBR : 'R 2 stmt'
+Row 25:
+        RBR : 'R 2 stmts'
+Row 26:
+        $ : 'R 3 braceblock'
+        IF : 'R 3 braceblock'
+        WHILE : 'R 3 braceblock'
+        RETURN : 'R 3 braceblock'
+        ELSE : 'R 3 braceblock'
+        RBR : 'R 3 braceblock'

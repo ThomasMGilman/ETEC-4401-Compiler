@@ -91,7 +91,7 @@ public class Assembler
     }
     private void addressNodeCode(TreeNode n)
     {
-        emit("move rax, [{0}]", n.Children[0].Token.Lexeme);
+        emit("mov rax, [{0}]", n.Children[0].Token.Lexeme);
     }
     //cond -> IF LP expr RP braceblock | 
     //IF LP expr RP braceblock ELSE braceblock
@@ -135,12 +135,12 @@ public class Assembler
         }
         var loopStartLabel = label();
         var loopEndLabel = label();
-        addressNodeCode(n.Children[2]);
+        exprNodeCode(n.Children[2]);
         emit("cmp rax, 0");
         emit("je {0}", loopEndLabel);       //jmp equals 0
         emit("{0}:", loopStartLabel);       //fall into loopstart label
         braceblockNodeCode(n.Children[4]);  //do while stuff
-        addressNodeCode(n.Children[2]);     //store value into rax
+        exprNodeCode(n.Children[2]);        //store value into rax
         emit("cmp rax, 0");                 //check rax == 0;
         emit("jne {0}", loopStartLabel);    //jump to loopstart if rax != 0
         emit("{0}:", loopEndLabel);
