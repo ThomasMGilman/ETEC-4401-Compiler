@@ -1,6 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 
+/// <summary>
+/// Assembler, uses StateTreeNodeRoot from Compiler to generate assembly instructions per input.
+/// Generates assembly for the specific grammar specified in GrammarData.cs
+/// </summary>
+
 public class Assembler
 {
     static List<string> asmCode;

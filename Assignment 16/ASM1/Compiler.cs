@@ -1,7 +1,6 @@
 ﻿//Thomas Gilman
 //Jim Hudson
 //ETEC 4401 Compiler
-// 26th March, 2019
 using System;
 using System.Text;
 using System.Collections.Generic;
@@ -1218,10 +1217,6 @@ public class Compiler
         c = new compiler(null, srcfile, 1);
         List<string> asm = c.generateAssembly();
         string asmText = "";
-        //string curDir = Environment.CurrentDirectory;
-        string aFile = asmfile;
-        string oFile = objfile;
-        string eFile = exefile;
 
         for (int i = 0; i < asm.Count; i++) //convert to string array
         {
@@ -1229,11 +1224,9 @@ public class Compiler
             if (i != asm.Count - 1)
                 asmText += "\n";
         }
-        File.WriteAllText(aFile, asmText);
-        ExeTools.ExeTools.Assemble(aFile, oFile);
-        Console.WriteLine("Got objectFile: {0}", oFile);
-        ExeTools.ExeTools.Link(oFile, eFile);
-        Console.WriteLine("Got exeFile: {0}", eFile);
+        File.WriteAllText(asmfile, asmText);
+        ExeTools.ExeTools.Assemble(asmfile, objfile);
+        ExeTools.ExeTools.Link(objfile, exefile);
     }
     public static void makelr0dfa(string gFile)
     {
