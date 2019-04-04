@@ -10,10 +10,14 @@ public class Assembler
 {
     static List<string> asmCode;
     static int labelCounter;
-    public Assembler(TreeNode root)
+    int cType;
+    enum VarType { NUMBER };
+
+    public Assembler(TreeNode root, int compilerType)
     {
         asmCode = new List<string>();
         labelCounter = 0;
+        cType = compilerType;
         programNodeCode(root);
     }
     public List<string> getASM()
@@ -80,39 +84,25 @@ public class Assembler
         }
     }
     //return-stmt -> RETURN expr
-    private void returnstmtNodeCode(TreeNode n)
+    private void returnstmtNodeCode(TreeNode n, out VarType type)
     {
-        exprNodeCode(n.Children[1]);
+        exprNodeCode(n.Children[1], out type);
         emit("ret");
-    }
-    //expr -> NUM
-    private void exprNodeCode(TreeNode n)
-    {
-        double d = Convert.ToDouble(n.Children[0].Token.Lexeme);
-        string ds = d.ToString("f");
-        if (ds.IndexOf(".") == -1)
-            ds += ".0"; //nasm requirment
-        emit("mov rax, __float64__({0})", ds);
-    }
-    private void addressNodeCode(TreeNode n)
-    {
-        emit("mov rax, [{0}]", n.Children[0].Token.Lexeme);
     }
     //cond -> IF LP expr RP braceblock | 
     //IF LP expr RP braceblock ELSE braceblock
-    private void condNodeCode(TreeNode n)
+    private void condNodeCode(TreeNode n, out VarType type)
     {
-        
-        exprNodeCode(n.Children[2]);
+        exprNodeCode(n.Children[2], out type);
         emit("cmp rax,0");
-        if(n.Children.Count == 5)
+        if (n.Children.Count == 5)
         {
             var endifLabel = label();
             emit("je {0}", endifLabel);
             braceblockNodeCode(n.Children[4]);
             emit("{0}:", endifLabel);
         }
-        else if(n.Children.Count == 7)
+        else if (n.Children.Count == 7)
         {
             var endifLabel = label();
             var elseLabel = label();
@@ -130,7 +120,7 @@ public class Assembler
         }
     }
     //loop -> WHILE RP expr RP braceblock
-    private void loopNodeCode(TreeNode n)
+    private void loopNodeCode(TreeNode n, out VarType type)
     {
         if (n.Children.Count != 5)
         {
@@ -140,16 +130,309 @@ public class Assembler
         }
         var loopStartLabel = label();
         var loopEndLabel = label();
-        exprNodeCode(n.Children[2]);
+        exprNodeCode(n.Children[2], out type);
         emit("cmp rax, 0");
-        emit("je {0}", loopEndLabel);       //jmp equals 0
-        emit("{0}:", loopStartLabel);       //fall into loopstart label
-        braceblockNodeCode(n.Children[4]);  //do while stuff
-        exprNodeCode(n.Children[2]);        //store value into rax
-        emit("cmp rax, 0");                 //check rax == 0;
-        emit("jne {0}", loopStartLabel);    //jump to loopstart if rax != 0
+        emit("je {0}", loopEndLabel);               //jmp equals 0
+        emit("{0}:", loopStartLabel);               //fall into loopstart label
+        braceblockNodeCode(n.Children[4]);          //do while stuff
+        exprNodeCode(n.Children[2], out type);      //store value into rax
+        emit("cmp rax, 0");                         //check rax == 0;
+        emit("jne {0}", loopStartLabel);            //jump to loopstart if rax != 0
         emit("{0}:", loopEndLabel);
 
+    }
+    private void exprNodeCode(TreeNode n, out VarType type)
+    {
+        orexpNodeCode(n.Children[0], out type);
+    }
+    /// <summary>
+    /// orexp -> orexp OR andexp | andexp
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="type"></param>
+    private void orexpNodeCode(TreeNode n, out VarType type)
+    {
+        if (n.Children.Count == 1)
+            andexpNodeCode(n.Children[0], out type);
+        else if (n.Children[0].Symbol == "orexp")
+        {
+            VarType t0;
+            orexpNodeCode(n.Children[0], out t0);
+            if (t0 != VarType.NUMBER)
+                throw new Exception("ICE!!!! Symbol: " + n.Children[0].Symbol + " did not return back as a number!!");
+
+            string lbl = label();
+            emit("mov rax, [rsp]");
+            emit("cmp rax, 0");
+            emit("jne {0}", lbl);
+            emit("add rsp, 8");
+
+            VarType t1;
+            andexpNodeCode(n.Children[2], out t1);
+            if (t0 != VarType.NUMBER)
+                throw new Exception("ICE!!!! Symbol: " + n.Children[2].Symbol + " did not return back as a number!!");
+            emit("{0}:", lbl);
+            type = VarType.NUMBER;
+        }
+        else
+            throw new Exception("ICE!!!! Expected ' orexp ' or ' andexp ', instead Recieved: " + n.Children[0].Symbol);
+
+    }
+    /// <summary>
+    /// andexp -> andexp AND notexp | notexp
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="type"></param>
+    private void andexpNodeCode(TreeNode n, out VarType type)
+    {
+        if (n.Children.Count == 1)
+            notexpNodeCode(n.Children[0], out type);
+        else if(n.Children[0].Symbol == "andexp")
+        {
+            VarType t0;
+            andexpNodeCode(n.Children[0], out t0);
+            if (t0 != VarType.NUMBER)
+                throw new Exception("ICE!!!! Symbol: " + n.Children[0].Symbol + " did not return back as a number!!");
+
+            string lbl = label();
+            emit("mov rax, [rsp]");
+            emit("cmp rax, 0");
+            emit("jmp {0}", lbl);
+
+            VarType t1;
+            notexpNodeCode(n.Children[0], out t1);
+            if (t1 != VarType.NUMBER)
+                throw new Exception("ICE!!!! Symbol: " + n.Children[2].Symbol + " did not return back as a number!!");
+            emit("{0}:lbl");
+            type = VarType.NUMBER;
+        }
+        else
+            throw new Exception("ICE!!!! Expected ' andexp ' or ' notexp ', instead Recieved: " + n.Children[0].Symbol);
+    }
+    /// <summary>
+    /// notexp -> NOT notexp | rel
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="type"></param>
+    private void notexpNodeCode(TreeNode n, out VarType type)
+    {
+        if(n.Children.Count == 1 && n.Children[0].Symbol == "rel")
+            relNodeCode(n.Children[0], out type);
+        else if(n.Children[0].Symbol == "NOT")
+        {
+
+        }
+        else
+            throw new Exception("ICE!!!! Expected ' rel ' or ' NOT ', instead Recieved: " + n.Children[0].Symbol);
+
+    }
+    /// <summary>
+    /// rel -> sum RELOP sum | sum
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="type"></param>
+    private void relNodeCode(TreeNode n, out VarType type)
+    {
+        if (n.Children.Count == 1)
+            sumNodeCode(n.Children[0], out type);
+        else if (n.Children[0].Symbol == "sum")
+        {
+            VarType t0, t1;
+            sumNodeCode(n.Children[0], out t0);
+            sumNodeCode(n.Children[2], out t1);
+            if (t0 != VarType.NUMBER || t1 != VarType.NUMBER)
+                throw new Exception("ICE!!!! Symbol: " + n.Children[0].Symbol + " or Symbol: " + n.Children[2].Symbol + " did not return back as a number!!");
+            movTwoVarsTo_xmmRegisters();
+
+            string mnemonic;
+            switch (n.Children[1].Token.Lexeme)
+            {
+                case "==": mnemonic = "cmpeqsd"; break;
+                case "<": mnemonic = "cmpltsd"; break;
+                case "<=": mnemonic = "cmplesd"; break;
+                case "!=": mnemonic = "cmpneqsd"; break;
+                case ">=": mnemonic = "cmpnltsd"; break;
+                case ">": mnemonic = "cmpnlesd"; break;
+                default:
+                    throw new Exception("ICE!!! Expected " +
+                        "' = ', ' < ', ' <= ', ' != ', ' >= ', or ' > ' instead Recieved: " + n.Children[1].Token.Lexeme);
+            }
+            emit("{0} xmm0,xmm1", mnemonic);
+
+            //Convert NaN to 1.0 with bitwise AND
+            emit("movq rax, xmm0");
+            emit("mov rbx, __float64__(1.0)");
+            emit("and rax,rbx");
+            emit("push rax");
+            type = VarType.NUMBER;
+        }
+        else
+            throw new Exception("ICE!!!! Expected ' sum ', instead Recieved: " + n.Children[0].Symbol);
+        return;
+
+    }
+    void sumNodeCode(TreeNode n, out VarType type)
+    {
+        switch(cType)
+        {
+            case 0:
+                VarType type1;
+                termNodeCode(n.Children[1], out type1);
+                sumLL_NodeCode(n, type1, out type);
+                return;
+            case 1:
+                sumSLR_NodeCode(n, out type);
+                return;
+            default:
+                throw new Exception("COMPILER ERROR!!!! Did not specify either LL'0' or SLR'1' parse style!!!");
+        }
+        
+    }
+    /// <summary>
+    /// sum -> sum ADDOP term | sum MINUS term | term
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="type"></param>
+    void sumSLR_NodeCode(TreeNode n, out VarType type)
+    {
+        switch (n.Children[0].Symbol)
+        {
+            case "term":
+                termNodeCode(n.Children[2], out type);
+                return;
+            case "sum":
+                VarType t0, t1;
+                sumNodeCode(n.Children[0], out t0);
+                termNodeCode(n.Children[2], out t1);
+                if (t0 != VarType.NUMBER || t1 != VarType.NUMBER)
+                    throw new Exception("ICE!!!! Symbol: " + n.Children[0].Symbol + " or Symbol: " + n.Children[2].Symbol + " did not return back as a number!!");
+                movTwoVarsTo_xmmRegisters();
+
+                switch (n.Children[1].Token.Lexeme)
+                {
+                    case "+": emit("addsd xmm0, xmm1"); break;
+                    case "-": emit("subsd xmm0, xmm1"); break;
+                    default:
+                        throw new Exception("ICE!!!! Expected ' - ' or ' + ', Recieved: " + n.Children[1].Token.Lexeme);
+                }
+                mov_xmm_To_rax_andPush();
+                type = VarType.NUMBER;
+                return;
+            default:
+                throw new Exception("ICE!!!! Expected ' sum ' or ' term ', instead Recieved: " + n.Children[0].Symbol);
+        }
+    }
+    /// <summary>
+    /// //sum' -> ADDOP term sum' | MINUS term sum' | lambda
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="type1"></param>
+    /// <param name="type"></param>
+    void sumLL_NodeCode(TreeNode n, VarType type1, out VarType type)
+    {
+        if (n.Children.Count == 0)
+        {
+            type = type1;
+            return;
+        }
+        VarType type2;
+        termNodeCode(n.Children[1], out type2);
+        if (type1 != type2)
+            throw new Exception("ICE!!!Type1: " + type1.ToString() + " did not match Type2: " + type2.ToString());
+        movTwoVarsTo_xmmRegisters();
+        switch (n.Children[0].Token.Lexeme)
+        {
+            case "+":
+                emit("addsd xmm0,xmm1");
+                break;
+            case "-":
+                emit("subsd xmm0,xmm1");
+                break;
+            default:
+                throw new Exception("ICE!!!! Expected ' - ' or ' + ', Recieved: " + n.Children[0].Token.Lexeme);
+        }
+        mov_xmm_To_rax_andPush();
+        type = VarType.NUMBER;
+        return;
+    }
+    /// <summary>
+    /// term -> term MULOP neg | neg
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="type"></param>
+    void termNodeCode(TreeNode n, out VarType type)
+    {
+        switch (n.Children[0].Symbol)
+        {
+            case "term":
+                VarType t0, t1;
+                termNodeCode(n.Children[0], out t0);
+                negNodeCode(n.Children[2], out t1);
+                if(t0 != VarType.NUMBER || t1 != VarType.NUMBER)
+                    throw new Exception("ICE!!!! Symbol: " + n.Children[0].Symbol + " or Symbol: " + n.Children[2].Symbol + " did not return back as a number!!");
+                movTwoVarsTo_xmmRegisters();
+                if (n.Children[1].Token.Symbol == "MULOP")
+                    emit("mulsd xmm0, xmm1");
+                else
+                    throw new Exception("ICE!!!! Expected MULOP : ' * ', Recieved: " + n.Children[1].Token.Lexeme);
+                mov_xmm_To_rax_andPush();
+                type = VarType.NUMBER;
+                break;
+            case "neg":
+                negNodeCode(n.Children[0], out type);
+                break;
+            default:
+                throw new Exception("ICE!!! Expected ' term ' or ' neg ', instead Recieved: " + n.Children[0].Symbol);
+        }
+    }
+    /// <summary>
+    /// neg -> MINUS neg | factor
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="type"></param>
+    private void negNodeCode(TreeNode n, out VarType type)
+    {
+        //only does factor right now
+        factorNodeCode(n.Children[0], out type);
+    }
+    //factor -> NUM | LP expr RP
+    private void factorNodeCode(TreeNode n, out VarType type)
+    {
+        var child = n.Children[0];
+        switch(child.Symbol)
+        {
+            case "NUM":
+                double d = Convert.ToDouble(child.Token.Lexeme);
+                string ds = d.ToString("f");
+                if (ds.IndexOf(".") == -1)
+                    ds += ".0";
+                emit("mov rax, __float64__({0})", ds);
+                emit("push rax");
+                type = VarType.NUMBER;
+                break;
+            case "LP":
+                exprNodeCode(n.Children[1], out type);
+                break;
+            default:
+                throw new Exception("ICE!!! Expected NUM or LP Recieved:"+child.Symbol);
+        }
+    }
+    /// <summary>
+    /// expr -> NUM
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="type"></param>
+    private void movTwoVarsTo_xmmRegisters()
+    {
+        emit("pop rax");        //second operand
+        emit("movq xmm1, rax");
+        emit("pop rax");        //first operand
+        emit("movq xmm0, rax");
+    }
+    private void mov_xmm_To_rax_andPush()
+    {
+        emit("movq rax, xmm0");
+        emit("push rax");
     }
     private static string label()
     {
