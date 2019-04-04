@@ -2,13 +2,11 @@
 //Jim Hudson
 //ETEC 4401 Compiler
 using System;
-
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using System.Linq;
 using System.IO;
 
-public class compiler
+public class compiler : CompilerFuncs
 {
     private string grammarFile, inputFile;
     private string[] grammarLines, inputLines;
@@ -80,7 +78,7 @@ public class compiler
     }
     public List<string> generateAssembly()
     {
-        Assembler asmblr = new Assembler(productionTreeRoot.Children[0]);
+        Assembler asmblr = new Assembler(productionTreeRoot, compilerType);
         return asmblr.getASM();
     }
     public TreeNode getTree()
@@ -124,157 +122,20 @@ public class compiler
         return startState;
     }
 
-    public void fullTestPrint()
-    {
-        printTerminals();
-        printProductions();
-        printNullableSet();
-        printFirsts();
-        printFollows();
-        printTokens();
-    }
-    public void printTerminals()
-    {
-        foreach(Terminal t in terminals)
-            Console.WriteLine("{0} -> {1}", t.terminal, t.nonTerminal.ToString());
-
-        Console.WriteLine();
-    }
-    public void printTokens()
-    {
-        Console.WriteLine("Tokens:");
-        foreach(Token t in tokens)
-            Console.WriteLine("\tline:' {0} ', Sym:' {1} ', Lex:' {2} '",t.line, t.Symbol, t.Lexeme);
-    }
-    public void printNullableSet()
-    {
-        Console.Write("nullable set: {");
-        foreach (string s in nullables)
-            Console.Write(" {0} ", s);
-
-        Console.WriteLine("}\n");
-    }
-    public void printProductions()
-    {
-        foreach (Production p in productions)
-            p.printProduction();
-        Console.WriteLine();
-    }
-    public void printNumProductions()
-    {
-        longestProduction longProd = new longestProduction();
-        bool setFirst = true;
-        foreach (Production p in productions)                            //find first longest production
-        {
-            Console.WriteLine("{0} {1}", p.lhs, p.productions.Count);
-            if (setFirst)
-            {
-                longProd.p = p;
-                longProd.longestProd = p.productions[0];
-                longProd.longestProdNum = p.productions[0].Length;
-                foreach (string production in p.productions)
-                {
-                    string[] prod = production.Split(' ');
-                    if (prod.Length > longProd.longestProdNum)
-                    {
-                        longProd.longestProd = production;                  //set longest production to longest production
-                        longProd.longestProdNum = prod.Length;              //set longest production num to new longest prod num
-                    }   
-                }
-                setFirst = false;
-            }
-            else
-            {
-                foreach (string production in p.productions)
-                {
-                    string[] prod = production.Split(' ');
-                    if (prod.Length > longProd.longestProdNum)
-                    {
-                        longProd.p = p;                             //set longest production to production with new longest production
-                        longProd.longestProd = production;          //set longest production to longest production
-                        longProd.longestProdNum = prod.Length;      //set longest production num to new longest prod num
-                    }
-                }
-            }
-        }
-        Console.WriteLine("{0} {1} -> {2}\n", longProd.longestProdNum, longProd.p.lhs, longProd.longestProd);
-    }
-    public void printFirsts(Production production = null)
-    {
-        Console.WriteLine("Firsts");
-        if(production == null)
-        {
-            foreach (Production p in productions)
-                p.printFirsts();
-        }
-        else
-            production.printFirsts();
-            
-        Console.WriteLine();
-    }
-    public void printFollows(Production production = null)
-    {
-        Console.WriteLine("Follows:");
-        if (production == null)
-        {
-            foreach (Production p in productions)
-                p.printFollows();
-        }
-        else
-            production.printFollows();
-
-        Console.WriteLine();
-    }
-    public void printLLTable()
-    {
-        Console.WriteLine("LL(1) Table:");
-        foreach(KeyValuePair<string, Dictionary<string, HashSet<string>>> nonterminal in LLTable)
-        {
-            foreach(KeyValuePair<string, HashSet<string>> terminal in LLTable[nonterminal.Key])
-                Console.WriteLine("\t{0} , {1} ::= {2}", nonterminal.Key, terminal.Key, LLTable[nonterminal.Key][terminal.Key].First());
-        }
-    }
-    public void printLRTable()
-    {
-        int row = 0;
-        foreach(Dictionary<string, Tuple<string, int, string>> keyValuePairs in LRTable)
-        {
-            Console.WriteLine("Row {0}:", row++);
-            foreach(KeyValuePair<string, Tuple<string, int, string>> keyValuePair in keyValuePairs)
-            {
-                Console.WriteLine("\t{0} : '{1} {2} {3}'", keyValuePair.Key,
-                    keyValuePair.Value.Item1, keyValuePair.Value.Item2, keyValuePair.Value.Item3);
-            }
-        }
-    }
-    private void outPutNewProductionsToFile()
-    {
-        string outPutFileName = "Production";
-        using (StreamWriter sw = File.CreateText(outPutFileName))
-        {
-            foreach (Production p in productions)
-                sw.WriteLine("{0} -> {1}.", p.lhs, p.rhs);
-            sw.Close();
-        }
-        Console.WriteLine("File has been written");
-    }
-    public void dumpLL_Tree()
-    {
-        if (productionTreeRoot != null && inputFile != null && grammarFile != null && compilerType == 0)
-            LLdot.dumpIt(productionTreeRoot);
-        else
-            throw new Exception("Did not specify compilerType to be for LL(0) or pass an input file to parse");
-    }
     public void dumpLR_DFA()
     {
-        if (startState != null && compilerType == 1 && inputFile != null && grammarFile != null)
-        {
-            LRdot dfaOut = new LRdot(startState, this.grammarFile);
-        }
-        else
-            throw new Exception("User Error, did not specify the use of an LR Compiler.\nattempted to output a LR_DFA without a LR(0) Start State!!");
+        dumpLR_DFA(startState, grammarFile, inputFile, compilerType);
     }
-    
+
+    public void fullTestPrint()
+    {
+        printTerminals(terminals);
+        printProductions(productions);
+        printNullableSet(nullables);
+        printFirsts(productions);
+        printFollows(productions);
+        printTokens(tokens);
+    }
 }
 
 public class Compiler

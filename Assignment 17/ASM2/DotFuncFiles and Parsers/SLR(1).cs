@@ -40,9 +40,11 @@ public class SLR_1_ : CompilerFuncs
             Dictionary<string, HashSet<LR0Item>> transitions = computeTransitions(Q);
             addStates(Q, transitions, seen, todo);
         }
-
+        
         //printSeenMap(seen);
         computeSLRTable(ref LRTable);
+        //printLRTable(LRTable);
+        //printTokens(t);
         //LRdot dot = new LRdot(startState, grammarFile);
         if (computeTree)
             SLR_Parse(LRTable, ref productionTreeRoot);
@@ -61,7 +63,7 @@ public class SLR_1_ : CompilerFuncs
                 if (!transitions.ContainsKey(sym))
                     transitions.Add(sym, new HashSet<LR0Item>());
                 LR0Item newItem = new LR0Item(item.Lhs, item.Rhs, item.Dpos + 1);
-                Console.WriteLine("adding production rhsLen:" + newItem.Rhs.Count + " " + newItem.ToString());
+                //Console.WriteLine("adding production rhsLen:" + newItem.Rhs.Count + " " + newItem.ToString());
                 transitions[sym].Add(newItem);
             }
         }
@@ -190,38 +192,39 @@ public class SLR_1_ : CompilerFuncs
                     t = "$";
                 else
                     t = tokens[tokenIndex].Symbol;
-                Console.WriteLine("\nToken{0}: ' {1} ' out of {2} Tokens", tokenIndex, t, tokens.Count);
+                //Console.WriteLine("\nToken{0}: ' {1} ' out of {2} Tokens", tokenIndex, t, tokens.Count);
                 if (!LRTable[s].ContainsKey(t))
                     throw new Exception("Syntax Error!! State:\n'" + states[s].ToString() + "'\nNo Entry for Token:'" + t + "'");
                 else
                 {
                     Tuple<string, int, string> action = LRTable[s][t];
-                    Console.WriteLine("S:{3} T:{4} \tAction: {0}, {1}, {2}", action.Item1, action.Item2, action.Item3, s, t);
+                    //Console.WriteLine("S:{3} T:{4} \tAction: {0}, {1}, {2}", action.Item1, action.Item2, action.Item3, s, t);
 
                     if (action.Item1 == "S") //Shift
                     {
                         stateStack.Push(action.Item2);
                         nodeStack.Push(new TreeNode(t, tokens[tokenIndex]));
-                        if (tokenIndex < tokens.Count())
-                            Console.WriteLine("\tShift Item2:'{0}' Node:'{1}' TokenLex:'{2}'", action.Item2, t, tokens[tokenIndex].Lexeme);
+                        //if (tokenIndex < tokens.Count())
+                            //Console.WriteLine("\tShift Item2:'{0}' Node:'{1}' TokenLex:'{2}'", action.Item2, t, tokens[tokenIndex].Lexeme);
                         tokenIndex++;
                     }
                     else                    //Reduce
                     {
                         TreeNode n = new TreeNode(action.Item3); //Reduce to Symbol
 
-                        Console.WriteLine("Popping {0} items:", action.Item2);
+                        //Console.WriteLine("Popping {0} items:", action.Item2);
                         for (int popNum = 0; popNum < action.Item2; popNum++)
                         {
-                            Console.WriteLine("\tPop: {0}\t: {1}, {2}", stateStack.Peek(), nodeStack.Peek().Symbol, nodeStack.Peek().Token == null ? "null" : nodeStack.Peek().Token.Lexeme);
+                            //Console.WriteLine("\tPop: {0}\t: {1}, {2}", stateStack.Peek(), nodeStack.Peek().Symbol, nodeStack.Peek().Token == null ? "null" : nodeStack.Peek().Token.Lexeme);
                             stateStack.Pop();
                             n.Children.Insert(0, nodeStack.Pop());
                         }
-                        Console.WriteLine("Reduced To: {0}", action.Item3);
-                        if (action.Item3 == "S'")
+                        //Console.WriteLine("Reduced To: {0}, {1}", action.Item3, LRTable[stateStack.Peek()][action.Item3].Item2);
+                        if (action.Item3 == "program" || action.Item3 == "S'")
                         {
                             if (tokenIndex == tokens.Count && t == "$")
                             {
+                                //Console.WriteLine("ROOT: {0}", n.Symbol);
                                 productionTreeRoot = n;
                                 return;
                             }
@@ -230,7 +233,6 @@ public class SLR_1_ : CompilerFuncs
                                     "Token is either not at the end or symbol is not '$'\n" +
                                     "Token index: '" + tokenIndex + "', Token:'" + t + "'");
                         }
-
                         stateStack.Push(LRTable[stateStack.Peek()][action.Item3].Item2);
                         nodeStack.Push(n);
                     }
