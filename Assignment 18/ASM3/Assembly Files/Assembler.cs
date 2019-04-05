@@ -52,7 +52,7 @@ class VarInfo
     }
 }
 
-public class Assembler
+public class Assembler : CompilerFuncs
 {
     static Dictionary<string, string> stringPool;
     static List<string> asmCode;
@@ -64,14 +64,17 @@ public class Assembler
     {
         asmCode = new List<string>();
         symtable = new SymbolTable();
+        stringPool = new Dictionary<string, string>();
         labelCounter = 0;
         cType = compilerType;
         programNodeCode(root);
     }
+
     public List<string> getASM()
     {
         return asmCode;
     }
+
     private void printChildren(TreeNode n, string nonterm)
     {
         Console.WriteLine("{0} Contents:", nonterm);
@@ -102,10 +105,36 @@ public class Assembler
         }
         emit("mov [{0}], rax", symtable[vname].Label);
     }
+
+    /// <summary>
+    /// var-decl-list -> var-decl SEMI var-decl-list | lambda
+    /// </summary>
+    /// <param name="n"></param>
+    private void vardecllistNodeCode(TreeNode n)
+    {
+        if (n.Children.Count == 0)
+            return;
+        else if(n.Children.Count == 3 && n.Children[0].Symbol == "var-decl")
+        {
+            vardeclNodeCode(n.Children[0]);
+            vardecllistNodeCode(n.Children[2]);
+        }
+        else
+        {
+            symtable.printTable();
+            throw new Exception("ICE!!! unrecognized production Expected var-decl or lambda but got size: " 
+                + n.Children.Count + " sym: " + (n.Children.Count > 0 ? n.Children[0].Symbol : "null"));
+        }
+    }
+
+    /// <summary>
+    /// var-decl -> VAR ID type
+    /// </summary>
+    /// <param name="n"></param>
     private void vardeclNodeCode(TreeNode n)
     {
         string vname = n.Children[1].Token.Lexeme;
-        string vtypestr = n.Children[2].Children[0].Children[0].Symbol;
+        string vtypestr = n.Children[2].Children[0].Children[0].Token.Symbol;
         VarType vtype = (VarType)Enum.Parse(typeof(VarType), vtypestr);
         if (symtable.Contains(vname))
         {
@@ -114,8 +143,9 @@ public class Assembler
         }
         symtable[vname] = new VarInfo(vtype, label());
     }
+
     /// <summary>
-    /// program -> stmts
+    /// program -> var-decl-list braceblock
     /// </summary>
     /// <param name="n"></param>
     private void programNodeCode(TreeNode n)
@@ -132,9 +162,12 @@ public class Assembler
         emit("cvtsd2si rax,xmm0");
         emit("ret");
         emit("theRealMain:");
-        braceblockNodeCode(n.Children[0]);
+        vardecllistNodeCode(n.Children[0]);
+        braceblockNodeCode(n.Children[1]);
         emit("ret");
         emit("section .data");
+        outputSymbolTableInfo();
+        outputStringPoolInfo();
     }
 
     /// <summary>
@@ -156,10 +189,10 @@ public class Assembler
             return;
         stmtNodeCode(n.Children[0]);
         stmtsNodeCode(n.Children[1]);
-    } 
+    }
 
     /// <summary>
-    /// stmt -> cond | loop | return-stmt SEMI
+    /// stmt -> cond | loop | return-stmt SEMI | assign SEMI
     /// </summary>
     /// <param name="n"></param>
     private void stmtNodeCode(TreeNode n)
@@ -176,9 +209,12 @@ public class Assembler
             case "return-stmt":
                 returnstmtNodeCode(c);
                 break;
+            case "assign":
+                assignNodeCode(c);
+                break;
             default:
                 throw new Exception("ICE!!!!! Symbol not recognized as a valid start to stmt!!\n" +
-                    "Symbol Got: ' " + n.Symbol + " ' Expected: ' cond ', ' loop ', or ' return-stmt '");
+                    "Symbol Got: ' " + n.Symbol + " ' Expected: ' cond ', ' loop ', ' return-stmt ', or ' assign '");
         }
     }
 
@@ -589,7 +625,7 @@ public class Assembler
             case "LP":
                 exprNodeCode(n.Children[1], out type);
                 break;
-            case "STRING-CONSTANT":
+            case "STRING-CONSTANT": //Stores the address of the string data on stack
                 string lbl;
                 stringconstantNodeCode(child, out lbl);
                 emit("mov rax, {0}", lbl);
@@ -612,7 +648,7 @@ public class Assembler
                         emit("push rax");
                         break;
                     default:
-                        //ICE 
+                        throw new Exception("ICE!!! Expected type NUMBER or STRING, Recieved: "+vi.VType);
                 }
                 type = vi.VType;
                 break;
@@ -623,13 +659,40 @@ public class Assembler
 
     private void stringconstantNodeCode(TreeNode n, out string lbl)
     {
+        //Remove Leading and Trailing " and replace escaped newlines with newline
         string s = n.Token.Lexeme;
-        s = s.Substring(1);                 //leading "
-        s = s.Substring(0, s.Length - 1);   //trailing "
-        s = s.Replace("\\n", "\n");
+        s = s.Substring(1, s.Length - 1).Replace("\\n", "\n"); 
+
         if (!stringPool.ContainsKey(s))
-            stringPool[s] = label();
-        lbl = stringPool[s];
+            stringPool.Add(s, label());
+        lbl = stringPool[s];
+    }
+
+    void outputSymbolTableInfo()
+    {
+        foreach(var vname in symtable.table.Keys)
+        {
+            var vinfo = symtable[vname];
+            if(vinfo.VType == VarType.NUMBER || vinfo.VType == VarType.STRING)
+            {
+                emit("{0}:", vinfo.Label);
+                emit("dq 0"); //null terminator
+            }
+        }
+    }
+
+    void outputStringPoolInfo()
+    {
+        foreach(var tmp in stringPool)
+        {
+            string theString = tmp.Key;
+            string lbl = tmp.Value;
+            emit(lbl + ":");
+            byte[] stringBytes = System.Text.Encoding.ASCII.GetBytes(theString);
+            foreach(byte b in stringBytes)
+                emit("db {0}", b);
+            emit("db 0"); //null terminator
+        }
     }
 
     private void makeDouble_and_push(string number)

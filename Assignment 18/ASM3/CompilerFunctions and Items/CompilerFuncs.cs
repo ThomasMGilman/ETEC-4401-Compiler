@@ -178,6 +178,29 @@ public class CompilerFuncs
             }
         }
     }
+    public void printNumTabs(int tabCount)
+    {
+        for (int i = 0; i < tabCount; i++)
+            Console.Write("\t");
+    }
+    public void printTreeNode(TreeNode n)
+    {
+        Console.WriteLine("TreeNode:{0} Token:({1})", n.Symbol, n.Token != null ? n.Token.Symbol + "," + n.Token.Lexeme : "null");
+    }
+    public void printTree(TreeNode root, int tabCount = 0)
+    {
+        printNumTabs(tabCount); printTreeNode(root);
+        printNumTabs(tabCount); Console.WriteLine("Children:");
+        foreach(TreeNode c in root.Children)
+        {
+            if (c.Children.Count > 0)
+                printTree(c, tabCount + 1);
+            else
+            {
+                printNumTabs(tabCount + 1); printTreeNode(c);
+            }
+        }
+    }
     public void outPutNewProductionsToFile(List<Production> productions)
     {
         string outPutFileName = "Production";
