@@ -31,7 +31,13 @@ class SymbolTable //done
     }
     public bool ContainsInCurrentScope(string varname)
     {
-        return scopes[scopes.Count - 1][varname] != null;
+        for(int i = scopes.Count - 1; i >= 0; i--)
+        {
+            if(scopes[i][varname] != null)
+                return true;
+        }
+        return false;
+        
     }
     public void AddScope()
     {
@@ -75,10 +81,8 @@ class Scope //done
         {
             return data.ContainsKey(varname) ? data[varname] : null;
         }
-        set //not allowed to redeclare variables yet
+        set
         {
-            if (data.ContainsKey(varname))
-                throw new Exception("ERROR!!! Trying to Redeclare variable: " + varname);
             data[varname] = value;
         }
     }

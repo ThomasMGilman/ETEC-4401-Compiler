@@ -35,13 +35,13 @@ public class Assembler
             Console.WriteLine("\t{0}", c.Symbol);
     }
 
-    private void prologueCode() //done
+    private void prologueCode()
     {
         emit("push rbp");
         emit("mov rbp, rsp");
     }
 
-    private void epilogueCode(int sizeOfVariableInThisBlock = 0) //done
+    private void epilogueCode(int sizeOfVariableInThisBlock = 0)
     {
         if (sizeOfVariableInThisBlock > 0)
             emit("add rsp, {0}", sizeOfVariableInThisBlock);
@@ -54,7 +54,7 @@ public class Assembler
     /// program -> var-decl-list braceblock
     /// </summary>
     /// <param name="n"></param>
-    private void programNodeCode(TreeNode n) //done
+    private void programNodeCode(TreeNode n)
     {
         if (n.Symbol != "program")
             throw new Exception("ICE!!!! Not looking at the start of the program.\n" +
@@ -72,10 +72,7 @@ public class Assembler
         prologueCode();
         int sizeOfVars;
         vardecllistNodeCode(n.Children[0], 0, out sizeOfVars);
-        Console.WriteLine("Cur Start VarSize: "+sizeOfVars);
         braceblockNodeCode(n.Children[1], sizeOfVars);
-        
-        Console.WriteLine("ScopeCount: "+symtable.ScopeCount); //should only have one scope at the end
         emit("section .data");
         outputSymbolTableInfo();
         outputStringPoolInfo();
@@ -85,7 +82,7 @@ public class Assembler
     /// braceblock -> LBR var-decl-list stmts RBR
     /// </summary>
     /// <param name="n"></param>
-    private void braceblockNodeCode(TreeNode n, int sizeOfVariableInEnclosingBlocks) //done
+    private void braceblockNodeCode(TreeNode n, int sizeOfVariableInEnclosingBlocks)
     {
         symtable.AddScope();
 
@@ -104,7 +101,7 @@ public class Assembler
     /// var-decl-list -> var-decl SEMI var-decl-list | lambda
     /// </summary>
     /// <param name="n"></param>
-    private void vardecllistNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar, out int sizeOfVariablesInThisDeclaration) //done
+    private void vardecllistNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar, out int sizeOfVariablesInThisDeclaration)
     {
         if (n.Children.Count == 0)
         {
@@ -133,26 +130,30 @@ public class Assembler
     /// non-array-type -> NUM | STRING
     /// </summary>
     /// <param name="n"></param>
-    private void vardeclNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar, out int sizeOfThisVariable) //done
+    private void vardeclNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar, out int sizeOfThisVariable)
     {
         string vname = n.Children[1].Token.Lexeme;
         string vtypestr = n.Children[2].Children[0].Children[0].Token.Symbol;
         VarType vtype = (VarType)Enum.Parse(typeof(VarType), vtypestr);
-        if (symtable.ContainsInCurrentScope(vname))
-        {
-            symtable.printScopes();
-            throw new Exception("ERROR!!! Duplicate Decleration!! Symtable already contains: " + vname + " in this scope!!!");
-        }
         sizeOfThisVariable = 8;
-        if (symtable.ScopeCount == 1) //global
+        int offset = sizeOfVariablesDeclaredSoFar + 8;
+        if (symtable.ContainsInCurrentScope(vname)) //setting variable to new value as long as its in scope
         {
-            symtable[vname] = new VarInfo(vtype, label());
+            if(symtable[vname].VType == vtype)
+                symtable[vname] = new VarInfo(vtype, "rbp-" + offset);
+            else
+                throw new Exception("ERROR!!! Duplicate Decleration!! Symtable already contains: " + vname + " in this scope!!! Mismatch of type");
         }
-        else //the very first local is at rbp-8
+        else
         {
-            int offset = sizeOfVariablesDeclaredSoFar + 8;
-            Console.WriteLine("Adding type:{0}, localVar:{1}, localSym:{2}, label:{3}", vtype, vname, vtypestr, "rbp-" + offset);
-            symtable[vname] = new VarInfo(vtype, "rbp-" + offset);
+            if (symtable.ScopeCount == 1) //global
+            {
+                symtable[vname] = new VarInfo(vtype, label());
+            }
+            else //the very first local is at rbp-8
+            {
+                symtable[vname] = new VarInfo(vtype, "rbp-" + offset);
+            }
         }
     }
 
