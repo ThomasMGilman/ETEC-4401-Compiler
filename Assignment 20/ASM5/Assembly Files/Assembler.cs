@@ -52,6 +52,11 @@ public class Assembler
         emit("db 0");
         emit("pctlf:");
         emit("db \"%lf\",0");
+        //printf
+        emit("msg:");
+        emit("db, 0");
+        emit("fmt:");
+        emit("db \"%s\", 10, 0");
     }
 
     private void prologueCode()
@@ -270,7 +275,7 @@ public class Assembler
         switch(child.Symbol)
         {
             case "PRINT":
-                //NEEDS DONE
+                printNodeCode(n, out type);
                 break;
             case "INPUT":
                 inputNodeCode(n, out type);
@@ -279,7 +284,7 @@ public class Assembler
                 openNodeCode(n, out type);
                 break;
             case "READ":
-                //NEEDS DONE
+                readNodeCode(n, out type);
                 break;
             case "WRITE":
                 writeNodeCode(n, out type);
@@ -291,6 +296,25 @@ public class Assembler
                 throw new Exception("ICE!!! Invalid function call!!" +
                     "\nExpected ' PRINT ', ' INPUT ', ' OPEN ', ' READ ', ' WRITE ', or ' CLOSE '. Recieved: "+child.Symbol);
         }
+    }
+
+    /// <summary>
+    /// builtin-func-call -> PRINT LP expr RP
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="type"></param>
+    private void printNodeCode(TreeNode n, out VarType type)
+    {
+        VarType t;
+        exprNodeCode(n.Children[2], out t);
+        if (t != VarType.STRING)
+            throw new Exception("ERROR!! Expected to print type STRING. Instead Recieved: "+t);
+        emit("mov {0}, msg", argRegister(1));   //move string to first register
+        emit("mov {0}, fmt", argRegister(0));   //move msg formating to secont register
+        emit("mov rax, 0");
+        doFuncCall("printf");
+        emit("fflush(0)");
+        type = VarType.VOID;
     }
 
     /// <summary>
@@ -325,6 +349,24 @@ public class Assembler
         emit("pop {0}", argRegister(0));        //address of string data
         emit("mov {0}, fopenRplus", argRegister(1));
         doFuncCall("fopen");
+        type = VarType.NUMBER;
+    }
+
+    /// <summary>
+    /// READ LP expr RP
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="type"></param>
+    private void readNodeCode(TreeNode n, out VarType type)
+    {
+        VarType t;
+        exprNodeCode(n.Children[2], out t);
+        if (t != VarType.STRING)
+            throw new Exception("ERROR!!! expected VarType STRING to Read file, instead Recieved: "+t);
+        emit("mov {0}, rsp", argRegister(1));   //filename
+        emit("mov {0}, 5", argRegister(0));     //__NR_open
+        emit("mov {0}, 2", argRegister(2));     //open in open mode
+        emit("mov rax, rsp");
         type = VarType.NUMBER;
     }
 
