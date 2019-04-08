@@ -45,9 +45,11 @@ public class Assembler
         //Write
         emit("pcts:");
         emit("db \"%s\", 0");
+        emit("fopenA:");
+        emit("db \"%g\",0");
         //Input
         emit("scanbuffer:");
-        emit("db, 0");
+        emit("db 0");
         emit("pctlf:");
         emit("db \"%lf\",0");
         //printf
@@ -113,9 +115,6 @@ public class Assembler
                 "Symbol Recieved: ' " + n.Symbol + " ' Expected: ' program '");
         emit("extern fopen");
         emit("extern fclose");
-        emit("extern scanf");
-        emit("extern fprintf");
-        emit("extern printf");
 
         emit("default rel");
         emit("section .text");
@@ -310,23 +309,11 @@ public class Assembler
         exprNodeCode(n.Children[2], out t);
         if (t != VarType.STRING)
             throw new Exception("ERROR!! Expected to print type STRING. Instead Recieved: "+t);
-        emit("pop {0}", argRegister(1));
-        if (t == VarType.NUMBER)
-        {
-            emit("mov {0}, pctg", argRegister(0));
-            emit("movq xmm0, {0}", argRegister(1));
-            emit("mov rax, 1");
-        }
-        else if (t == VarType.STRING)
-        {
-            emit("mov {0}, pcts", argRegister(0));
-            emit("mov rax, 1");
-        }
-        else
-            throw new Exception("Error!!! Expected to printy type STRING or NUM, instead recieved: " + t);
+        emit("mov {0}, msg", argRegister(1));   //move string to first register
+        emit("mov {0}, fmt", argRegister(0));   //move msg formating to secont register
+        emit("mov rax, 0");
         doFuncCall("printf");
-        emit("mov {0}, 0", argRegister(0));
-        doFuncCall("fflush");
+        emit("fflush(0)");
         type = VarType.VOID;
     }
 
@@ -366,7 +353,7 @@ public class Assembler
     }
 
     /// <summary>
-    /// builtin-func-call -> READ LP expr RP
+    /// READ LP expr RP
     /// </summary>
     /// <param name="n"></param>
     /// <param name="type"></param>
@@ -376,12 +363,10 @@ public class Assembler
         exprNodeCode(n.Children[2], out t);
         if (t != VarType.STRING)
             throw new Exception("ERROR!!! expected VarType STRING to Read file, instead Recieved: "+t);
-        emit("pop {0}", argRegister(2));
-        emit("mov {0}, pctlf", argRegister(0));
-        emit("mov {0}, scanbuffer", argRegister(1));
-        emit("mov rax, 1");
-        doFuncCall("scanf");
-        emit("mov rax, [scanbuffer]");
+        emit("mov {0}, rsp", argRegister(1));   //filename
+        emit("mov {0}, 5", argRegister(0));     //__NR_open
+        emit("mov {0}, 2", argRegister(2));     //open in open mode
+        emit("mov rax, rsp");
         type = VarType.NUMBER;
     }
 
