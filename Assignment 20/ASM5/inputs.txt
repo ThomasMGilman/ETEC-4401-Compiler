@@ -1,0 +1,158 @@
+//-
+//returns 123
+//output is "456"
+{
+    print(456);
+    return 123;
+}
+//-
+//returns 123
+//output is "456\n"
+{
+    print(456);
+    print("\n");
+    return 123;
+}
+//-
+//returns 123
+//output is "Hello, world!"
+{
+    print("Hello, world!");
+    return 123;
+}   
+//-
+//returns 124
+//output is "Hello\nworld!"
+{
+    print("H");
+    print("ell");
+    print("o\nw");
+    print("orld!");
+    return 124;
+}   
+//-
+//returns 23
+var fp number;
+{
+    fp = open("blah");
+    print("fp is ");
+    print(fp);
+    close(fp);
+    return 23;
+}   
+//-
+//returns 23
+{
+    var fp number;
+    fp = open("blah");
+    print("fp is ");
+    print(fp);
+    close(fp);
+    return 23;
+}   
+//-
+//returns 0
+//output is "value is 42"
+var fp number;
+var value number;
+{
+    fp = open("blah");
+    write(fp, 40+2 );
+    close(fp);
+    fp = open("blah");
+    value = read(fp);
+    print("value is ");
+    print(value);
+    close(fp);
+    return 0;
+}  
+//-
+//returns 0
+//output is "value is 42"
+{
+    var fp number;
+    var value number;
+    fp = open("blah");
+    write(fp, 40+2 );
+    close(fp);
+    fp = open("blah");
+    value = read(fp);
+    print("value is ");
+    print(value);
+    close(fp);
+    return 0;
+}    
+//-
+//returns 0
+//output is "value is 42"
+//output file blah has "42 hello"
+var fp number;
+var value number;
+{
+    fp = open("blah");
+    write(fp, 40+2 );
+    write(fp," hello");
+    close(fp);
+    fp = open("blah");
+    value = read(fp);
+    print("value is ");
+    print(value);
+    close(fp);
+    return 0;
+}   
+//-
+//returns 0
+//output file blah1 has "this is blah"
+//output file blah2 has "flivver"
+{
+    var fp1 number;
+    var fp2 number;
+    fp1 = open("blah1");
+    fp2 = open("blah2");
+    write(fp1, "this is " );
+    write(fp2, "flivve");
+    write(fp1, "blah");
+    write(fp2, "r");
+    close(fp1);
+    close(fp2);
+    return 0;
+}
+//-
+//returns failure
+var fp number;
+{
+    fp = open(42);
+    return 0;
+}
+//-
+//returns failure
+{
+    write("xyz","abc");
+    return 0;
+}
+//-
+//returns failure
+{
+    read("xyz");
+    return 0;
+}
+//-
+//returns 0
+//input is "10\n"
+//output is "Total: 55\n"
+{
+    var n number;
+    var total number;
+    var i number;
+    n = input();
+    total = 0;
+    i=0;
+    while( i <= n ){
+        total = total + i;
+        i = i + 1;
+    }
+    print("Total: ");
+    print(total);
+    print("\n");
+    return 0;
+}

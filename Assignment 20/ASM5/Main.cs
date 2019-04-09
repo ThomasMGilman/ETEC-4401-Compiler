@@ -176,14 +176,14 @@ namespace Test {
                             }
                             Console.WriteLine("-----------------");
                         }
-                        //Console.ReadLine();
+                        Console.ReadLine();
                         Environment.Exit(1);
                     }
                 }
             }
 
             Console.WriteLine("All OK!");
-            //Console.ReadLine();
+            Console.ReadLine();
         }
     }
 }

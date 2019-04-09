@@ -342,6 +342,6 @@ public class CompilerFuncs
                     Interpret(children[3]);
                 break;
         }
-        return null;
+        return inherited;
     }
 }

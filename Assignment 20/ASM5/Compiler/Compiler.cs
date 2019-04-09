@@ -78,6 +78,8 @@ public class compiler : CompilerFuncs
     }
     public List<string> generateAssembly()
     {
+        //fullTestPrint();
+        //printLRTable(LRTable);
         //getTree();
         Assembler asmblr = new Assembler(productionTreeRoot, compilerType);
         return asmblr.getASM();

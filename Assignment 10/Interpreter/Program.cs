@@ -33,8 +33,8 @@ class MainClass
 
         var tree = Compiler.parse(gfile, ifile);
         dumpIt(tree);
-        //Compiler.interpret(gfile, ifile);
-        //Console.Read();
+        Compiler.interpret(gfile, ifile);
+        Console.Read();
     }
 
     class ShadowNode

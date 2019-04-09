@@ -45,14 +45,16 @@ public class Assembler
         //Write
         emit("pcts:");
         emit("db \"%s\", 0");
+        emit("pctg:");
+        emit("db \"%g\", 0");
         //Input
         emit("scanbuffer:");
-        emit("db, 0");
+        emit("db 0");
         emit("pctlf:");
         emit("db \"%lf\",0");
         //printf
         emit("msg:");
-        emit("db, 0");
+        emit("db 0");
         emit("fmt:");
         emit("db \"%s\", 10, 0");
     }
@@ -113,9 +115,11 @@ public class Assembler
                 "Symbol Recieved: ' " + n.Symbol + " ' Expected: ' program '");
         emit("extern fopen");
         emit("extern fclose");
-        emit("extern scanf");
+        emit("extern fscanf");
         emit("extern fprintf");
+        emit("extern scanf");
         emit("extern printf");
+        emit("extern fflush");
 
         emit("default rel");
         emit("section .text");
@@ -271,9 +275,23 @@ public class Assembler
     /// <param name="n"></param>
     private void funccallNodeCode(TreeNode n, out VarType type)
     {
-        var child = n.Children[0].Children[0];
-        
-        switch(child.Symbol)
+        if (n.Children.Count != 1)
+            throw new Exception("ERROR!!! Expected Child Count of 1 and builtin-func-call.\nInstead got Count:"+ n.Children.Count +" Symbol: "+ n.Children[0].Symbol);
+        builtin_func_call(n.Children[0], out type);
+    }
+
+    /// <summary>
+    /// builtin-func-call -> PRINT LP expr RP | 
+    ///     INPUT LP RP | 
+    ///     OPEN LP expr RP | 
+    ///     READ LP expr RP | 
+    ///     WRITE LP expr CMA expr RP | 
+    ///     CLOSE LP expr RP
+    /// </summary>
+    private void builtin_func_call(TreeNode n, out VarType type)
+    {
+        var child = n.Children[0];
+        switch (child.Symbol)
         {
             case "PRINT":
                 printNodeCode(n, out type);
@@ -295,12 +313,13 @@ public class Assembler
                 break;
             default:
                 throw new Exception("ICE!!! Invalid function call!!" +
-                    "\nExpected ' PRINT ', ' INPUT ', ' OPEN ', ' READ ', ' WRITE ', or ' CLOSE '. Recieved: "+child.Symbol);
+                    "\nExpected ' PRINT ', ' INPUT ', ' OPEN ', ' READ ', ' WRITE ', or ' CLOSE '. Recieved: " + child.Symbol);
         }
     }
 
     /// <summary>
     /// builtin-func-call -> PRINT LP expr RP
+    /// int printf(const char *format, ...)
     /// </summary>
     /// <param name="n"></param>
     /// <param name="type"></param>
@@ -308,40 +327,45 @@ public class Assembler
     {
         VarType t;
         exprNodeCode(n.Children[2], out t);
-        if (t != VarType.STRING)
-            throw new Exception("ERROR!! Expected to print type STRING. Instead Recieved: "+t);
-        emit("pop {0}", argRegister(1));
-        if (t == VarType.NUMBER)
+        if (t == VarType.STRING || t == VarType.NUMBER)
         {
-            emit("mov {0}, pctg", argRegister(0));
-            emit("movq xmm0, {0}", argRegister(1));
-            emit("mov rax, 1");
-        }
-        else if (t == VarType.STRING)
-        {
-            emit("mov {0}, pcts", argRegister(0));
-            emit("mov rax, 1");
+            emit("pop {0}", argRegister(1));
+            if (t == VarType.NUMBER)
+            {
+                emit("mov {0}, pctg", argRegister(0));
+                emit("movq xmm0, {0}", argRegister(1));
+                emit("mov rax, 1");
+            }
+            else if (t == VarType.STRING)
+            {
+                emit("mov {0}, pcts", argRegister(0));
+                emit("mov rax, 1");
+            }
+            else
+                throw new Exception("Error!!! Expected to print type STRING or NUM, instead recieved: " + t);
+            doFuncCall("printf");
+            emit("mov {0}, 0", argRegister(0));
+            doFuncCall("fflush");
+            type = VarType.VOID;
         }
         else
-            throw new Exception("Error!!! Expected to printy type STRING or NUM, instead recieved: " + t);
-        doFuncCall("printf");
-        emit("mov {0}, 0", argRegister(0));
-        doFuncCall("fflush");
-        type = VarType.VOID;
+            throw new Exception("ERROR!! Expected to print type STRING or NUMBER. Instead Recieved: "+t);
+        
     }
 
     /// <summary>
     /// builtin-func-call -> INPUT LP RP
+    /// int scanf ( const char * format, ... );
     /// </summary>
     /// <param name="n"></param>
     /// <param name="type"></param>
     private void inputNodeCode(TreeNode n, out VarType type)
     {
         emit("mov {0}, pctlf", argRegister(0));         //create pctf too
-        emit("mov {0}, scanfbuffer", argRegister(1));
-        emit("mov rax, 0");                             //num fp variadic args
+        emit("mov {0}, scanbuffer", argRegister(1));
+        emit("mov rax, 1");                             //num fp variadic args
         doFuncCall("scanf");
-        emit("mov rax, [scanfbuffer]");                 //leave result in rax
+        emit("mov rax, [scanbuffer]");                 //leave result in rax
         type = VarType.NUMBER;
     }
 
@@ -367,6 +391,7 @@ public class Assembler
 
     /// <summary>
     /// builtin-func-call -> READ LP expr RP
+    /// int fscanf ( FILE * stream, const char * format, ... );
     /// </summary>
     /// <param name="n"></param>
     /// <param name="type"></param>
@@ -374,19 +399,24 @@ public class Assembler
     {
         VarType t;
         exprNodeCode(n.Children[2], out t);
-        if (t != VarType.STRING)
-            throw new Exception("ERROR!!! expected VarType STRING to Read file, instead Recieved: "+t);
-        emit("pop {0}", argRegister(2));
-        emit("mov {0}, pctlf", argRegister(0));
-        emit("mov {0}, scanbuffer", argRegister(1));
-        emit("mov rax, 1");
-        doFuncCall("scanf");
-        emit("mov rax, [scanbuffer]");
-        type = VarType.NUMBER;
+        if (t == VarType.NUMBER)
+        {
+            emit("pop {0}", argRegister(0));                //fileName
+            emit("mov {0}, pctlf", argRegister(1));         //format
+            emit("mov {0}, scanbuffer", argRegister(2));    //buffer
+            emit("mov rax, 1");                             //num var args
+            doFuncCall("fscanf");
+            emit("mov rax, [scanbuffer]");
+            type = VarType.NUMBER;
+        }
+        else
+            throw new Exception("ERROR!!! expected VarType NUMBER to Read file, instead Recieved: "+t);
+        
     }
 
     /// <summary>
     /// builtin-func-call -> CLOSE LP expr RP
+    /// int fclose(FILE *stream)
     /// </summary>
     /// <param name="n"></param>
     /// <param name="type"></param>
@@ -403,7 +433,7 @@ public class Assembler
 
     /// <summary>
     /// builtin-func-call -> WRITE LP expr CMA expr RP,
-    /// fprintf( fp, "%s", str ) or fprintf( fp, "%g", num )
+    /// int fprintf ( FILE * stream, const char * format, ... );
     /// </summary>
     /// <param name="n"></param>
     /// <param name="type"></param>
@@ -414,21 +444,21 @@ public class Assembler
         exprNodeCode(n.Children[4], out t1);    //data to write
         if(t2 != VarType.NUMBER)
             throw new Exception("Error!!! Expected type ' NUMBER ' for write handle, Recieved: "+t2);
-        emit("pop {0}", argRegister(2));
+        emit("pop {0}", argRegister(2));            //get data to write
         if (t1 == VarType.NUMBER)
         {
-            emit("mov {0}, pctg", argRegister(1));
+            emit("mov {0}, pctg", argRegister(1));  //format
             emit("movq xmm0, {0}", argRegister(2)); //number to xmm too
             emit("mov rax,1");                      //num fp variadic args
         }
         else if (t1 == VarType.STRING)
         {
-            emit("mov {0}, pcts", argRegister(1));
-            emit("mov rax,0");                      //num fp variadic args
+            emit("mov {0}, pcts", argRegister(1));  //format
+            emit("mov rax,1");                      //num fp variadic args
         }
         else
             throw new Exception("Expected to write type ' NUMBER ', or ' STRING ' instead Recieved: "+t1);
-        emit("pop {0}", argRegister(0));
+        emit("pop {0}", argRegister(0));            //get filepointer
         doFuncCall("fprintf");
         emit("mov {0}, 0", argRegister(0));
         doFuncCall("fflush");
@@ -908,8 +938,7 @@ public class Assembler
     {
         //Remove Leading and Trailing " and replace escaped newlines with newline
         string s = n.Token.Lexeme;
-        s = s.Substring(1, s.Length - 1).Replace("\\n", "\n"); 
-
+        s = s.Substring(1, s.Length-2).Replace("\\n", "\n");
         if (!stringPool.ContainsKey(s))
             stringPool.Add(s, label());
         lbl = stringPool[s];
