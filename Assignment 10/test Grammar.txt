@@ -13,15 +13,15 @@ LBR -> [{]
 RBR -> [}]
 
 S -> stmt SEMI S | lambda
-a-o-f -> ID a-o-f’
-a-o-f’ -> EQ e | LP a-o-f”
-a-o-f” -> RP | e RP
-cond -> IF LP e RP LBR S RBR cond’
-cond’ -> lambda | ELSE LBR S RBR
-e -> t e’
-e’ -> ADDOP t e’ | lambda
+a-o-f -> ID a-o-f'
+a-o-f' -> EQ e | LP a-o-f''
+a-o-f'' -> RP | e RP
+cond -> IF LP e RP LBR S RBR cond'
+cond' -> lambda | ELSE LBR S RBR
+e -> t e'
+e' -> ADDOP t e' | lambda
 f -> ID | NUM | LP e RP
 loop -> WHILE e LBR S RBR
 stmt -> a-o-f | cond | loop
-t -> f t’
-t’ -> MULOP f t’ | lambda
+t -> f t'
+t' -> MULOP f t' | lambda

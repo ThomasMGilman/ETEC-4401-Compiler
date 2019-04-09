@@ -15,7 +15,6 @@ public class LL_0_ : CompilerFuncs
         nullables = nulls;
         tokens = t;
         computeLLTable(ref LLTable);
-        //printLLTable(LLTable);
         if(computeTree)
             computeLLTree(ref LLTable, ref productionTreeRoot);
     }
@@ -67,13 +66,11 @@ public class LL_0_ : CompilerFuncs
 
             stacktop = stack.Last.Value;
 
-            //Console.WriteLine("Looking at T: {0}\tStacktop: ({1}, {2})", t, stacktop.Symbol, stacktop.Token != null? stacktop.Token.Lexeme : "null");
             if (productionDict.ContainsKey(stacktop.Symbol)) //top symbol is nonterminal
             {
                 //get nonterminal, remove it and push production that starts on IF onto the stack backwards
                 try
                 {
-                    //Console.WriteLine("-------------------POP!!");
                     stack.RemoveLast();
                     if (LLTable[stacktop.Symbol][t.Symbol].ElementAt(0) != "lambda")
                     {
@@ -83,15 +80,12 @@ public class LL_0_ : CompilerFuncs
                         stacktop.Children.AddRange(Children);
                         Children.Reverse();
                         foreach (TreeNode child in Children)
-                        {
-                            //Console.WriteLine("Adding: ({0}, {1})", child.Symbol, stacktop.Token != null ? stacktop.Token.Lexeme : "null");
                             stack.AddLast(child);
-                        }
                     }
                 }
                 catch (Exception e)
                 {
-                    //Console.WriteLine("Stack contents:");
+                    Console.WriteLine("Stack contents:");
                     while (stack.Count > 0)
                     {
                         var p = stack.Last.Value;
@@ -106,7 +100,6 @@ public class LL_0_ : CompilerFuncs
                 stacktop.Token = t;
                 stack.RemoveLast();
                 inputIndex++;
-                //Console.WriteLine("REMOVED! Token{0}:{1}\n\n------------------------------------------------",inputIndex, tokens.Count);
             }
             else
                 throw new Exception("Error: Lexeme '" + t.Lexeme + "' does not match top symbol '" + stacktop.Symbol + "'!!!");

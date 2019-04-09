@@ -1,0 +1,637 @@
+//-
+//returns 42
+def main() return number {
+    return 42;
+}
+//-
+//returns 6
+def foo() return number {
+    var x number;
+    var y number;
+    x = 2;
+    y = 3;
+    return x+y;
+}
+
+def main() return number {
+    return 1+foo();
+}
+//-
+//returns 6
+def foo() return number {
+    var x number;
+    var y number;
+    x = 2;
+    y = 3;
+    return x+y;
+}
+
+def main() return number {
+    var z number;
+    z = foo();
+    return z+1;
+}
+//-
+//returns 52
+def main() return number {
+    //simple addition test
+    var x number;
+    var y number;
+    var z number;
+    x = 42;
+    y = 10;
+    z = x+y;
+    return z;
+}
+//-
+//returns 105
+var x number;
+def main(){
+    var y number;
+    x = 100;
+    y = foo(4);
+    return y+x;
+}
+def foo(y number) return number{
+    var x number;
+    x = 1;
+    return y+x;
+}
+
+//-
+//returns 30
+def main() return number {
+    var y number;
+    var z number;
+    y = 10;
+    z = 20;
+    return f(y,z);
+}
+
+def f(a number, b number ) return number {
+    return a+b;
+}
+//-
+//returns 0
+//output is "in f foo done f"
+def main() return number {
+    f("foo");
+    return 0;
+}
+def f(a string) {
+    print("in f ");
+    print(a);
+    print(" done f");
+}
+//-
+//returns 0
+//output is "in f fooxbar done fin f bazxbam done f"
+def main() return number {
+    f("foo","bar");
+    f("baz","bam");
+    return 0;
+}
+def f(a string, b string) {
+    print("in f ");
+    print(a);
+    print("x");
+    print(b);
+    print(" done f");
+}
+//-
+//returns failure
+def main() return number {
+    //tries to do addition between string and
+    //number: Should fail
+    var x string;
+    var y number;
+    var z number;
+    
+    x = "foo";
+    y = 42;
+    z = x+y;
+}
+
+//-
+//returns failure
+def main() return number {
+    //tries to do subtraction between string and
+    //number: Should fail
+    var x string;
+    var y number;
+    var z number;
+    
+    x = "foo";
+    y = 42;
+    z = x-y;
+}
+
+//-
+//returns failure
+def main() return number {
+    //tries to do addition between string and
+    //string: Should fail
+    var x string;
+    var y string;
+    var z string;
+    
+    x = "foo";
+    y = "bar";
+    z = x+y;
+}
+
+//-
+//returns failure
+def main() return number {
+    //undeclared variable y
+    var x string;
+    x = "foo";
+    y = 42;
+}
+
+//-
+//returns 12
+def main() return number {
+    var x number;
+    var y number;
+    var z number;
+    var w number;
+    w = -42;
+    x = -w;
+    y = 10;
+    z = x+y;
+    x = z*y/x;
+    return x;
+}
+
+//-
+//returns 15
+def main() return number {
+    var x number;
+    var y number;
+    var z number;
+    var main number;
+    x=4;
+    y=5;
+    z=6;
+    return x+y+z;
+}
+
+//-
+//returns 56
+def main() return number {
+    var x number;
+    var y number;
+    var z number;
+    var w number;
+    var main number;
+    w=1;
+    x=2;
+    y=3;
+    z=4;
+    return x * (y + z ) * (y + w) ;
+}
+//-
+//returns 55
+//fibonacci sequence: Compute fib(10)
+def main() return number {
+    var i number;
+    var v0 number;
+    var v1 number;
+    var tmp number;
+    i=0;
+    v0=0;
+    v1=1;
+    while(i<10){
+        tmp = v0+v1;
+        v1=v0;
+        v0=tmp;
+        i = i+1;
+    }
+    return v0;
+}
+//-
+//returns 55
+//recursive fibonacci number
+def fib(i number) return number {
+    if( i == 1 or i == 2 ) {
+        return 1;
+    } else {
+        return fib(i-1)+fib(i-2);
+    }
+}
+
+def main() return number {
+    return fib(10);
+}
+//-
+//returns 110
+//mutual recursion example
+//https://stackoverflow.com/questions/2725038/are-there-any-example-of-mutual-recursion
+def even( n number ) return number {
+    if( n == 0 ) {
+        return 1;
+    } else {
+        return odd( n-1 );
+    }
+}
+def odd( n number ) return number {
+    if( n == 0 ) {
+        return 0;
+    } else {
+        return even( n-1 );
+    }
+}
+def main() return number {
+    return 100*even(12)+10*even(24)+odd(24);
+}
+//-
+//returns 6
+def main() return number {
+return 2+4;
+}
+//-
+//returns 3
+def main() return number {
+return 1+2*3-4;
+}
+//-
+//returns nonzero
+def main() return number {
+return 2+2 and 0 or 7*4;
+}
+//-
+//returns nonzero
+def main() return number {
+return 2+2 or 0 or 7*4;
+}
+//-
+//returns 0
+def main() return number {
+return 2+2 and 0 and 7*4;
+}
+//-
+//returns nonzero
+def main() return number {
+return 2 or 4;
+}
+//-
+//returns nonzero
+def main() return number {
+return 0 or 4;
+}
+//-
+//returns nonzero
+def main() return number {
+return 4 or 0;
+}
+//-
+//returns 0
+def main() return number {
+return 0 or 0;
+}
+//-
+//returns nonzero
+def main() return number {
+return 3 and 5;
+}
+//-
+//returns 0
+def main() return number {
+return 0 and 5;
+}
+//-
+//returns 0
+def main() return number {
+return 5 and 0;
+}
+//-
+//returns 0
+def main() return number {
+return 0 and 0;
+}
+//-
+//returns 0
+def main() return number {
+return not 5;
+}
+//-
+//returns nonzero
+def main() return number {
+return not 0;
+}
+//-
+//returns 0
+def main() return number {
+return not 2+3;
+}
+//-
+//returns nonzero
+def main() return number {
+return not 0+0;
+}
+//-
+//returns 7
+def main() return number {
+return 3+4;
+}
+//-
+//returns 11
+def main() return number {
+return 5+6;
+}
+//-
+//returns nonzero
+def main() return number {
+return 3+4 and 5+6;
+}
+//-
+//returns 0
+def main() return number {
+return 1 > 2;
+}
+//-
+//returns nonzero
+def main() return number {
+return 2 > 1;
+}
+//-
+//returns nonzero
+def main() return number {
+return 1 < 2;
+}
+//-
+//returns 0
+def main() return number {
+return 2 < 1;
+}
+//-
+//returns 0
+def main() return number {
+return 1 == 2;
+}
+//-
+//returns nonzero
+def main() return number {
+return 1 == 1;
+}
+//-
+//returns nonzero
+def main() return number {
+return 1 != 2;
+}
+//-
+//returns 0
+def main() return number {
+return 1 != 1;
+}
+//-
+//returns 0
+def main() return number {
+return 1 >= 2;
+}
+//-
+//returns nonzero
+def main() return number {
+return 2 >= 1;
+}
+//-
+//returns nonzero
+def main() return number {
+return 1 <= 2;
+}
+//-
+//returns 0
+def main() return number {
+return 2 <= 1;
+}
+//-
+//returns 7
+def main() return number {
+return 3 + 4;
+}
+//-
+//returns 3
+def main() return number {
+return 5 - 2;
+}
+//-
+//returns 12
+def main() return number {
+return 3 * 4;
+}
+//-
+//returns 17
+def main() return number {
+return 3 * 5 + 2;
+}
+//-
+//returns 17
+def main() return number {
+return 2 + 3*5;
+}
+//-
+//returns 11
+def main() return number {
+return 3*5-4;
+}
+//-
+//returns 8
+def main() return number {
+return 20-3*4;
+}
+//-
+//returns 2
+def main() return number {
+return 12/6;
+}
+//-
+//returns 3
+def main() return number {
+return -(1-4);
+}
+//-
+//returns 34
+def main() return number {
+    if( 12 ){
+        return 34;
+    } else {
+        return 78;
+    }
+    return 56;
+}
+//-
+//returns 78
+def main() return number {
+    if( 0 ){
+        return 34;
+    } else {
+        return 78;
+    }
+    return 56;
+}
+//-
+//returns 56
+def main() return number {
+    if( 0 ){
+        return 34;
+    } 
+    return 56;
+}
+//-
+//returns 12
+def main() return number {
+    while( 123 ){
+        return 12;
+    }
+    return 34;
+}
+//-
+//returns 34
+def main() return number {
+    while( 0 ){
+        return 12;
+    }
+    return 34;
+}
+//-
+//returns infinite
+def main() return number {
+    while( 1 ){
+        if( 0 ) {
+            return 1;
+        }
+    }
+}
+//-
+//returns 123
+//output is "456"
+def main() return number {
+    print(456);
+    return 123;
+}
+//-
+//returns 123
+//output is "456\n"
+def main() return number {
+    print(456);
+    print("\n");
+    return 123;
+}
+//-
+//returns 123
+//output is "Hello, world!"
+def main() return number {
+    print("Hello, world!");
+    return 123;
+}   
+//-
+//returns 124
+//output is "Hello\nworld!"
+def main() return number {
+    print("H");
+    print("ell");
+    print("o\nw");
+    print("orld!");
+    return 124;
+}   
+//-
+//returns 23
+def main() return number {
+    var fp number;
+    fp = open("blah");
+    print("fp is ");
+    print(fp);
+    close(fp);
+    return 23;
+}   
+//-
+//returns 0
+//output is "value is 42"
+def main() return number {
+    var fp number;
+    var value number;
+    fp = open("blah");
+    write(fp, 40+2 );
+    close(fp);
+    fp = open("blah");
+    value = read(fp);
+    print("value is ");
+    print(value);
+    close(fp);
+    return 0;
+}   
+//-
+//returns 0
+//output is "value is 42"
+//output file blah has "42 hello"
+def main() return number {
+    var fp number;
+    var value number;
+    fp = open("blah");
+    write(fp, 40+2 );
+    write(fp," hello");
+    close(fp);
+    fp = open("blah");
+    value = read(fp);
+    print("value is ");
+    print(value);
+    close(fp);
+    return 0;
+}   
+//-
+//returns 0
+//output file blah1 has "this is blah"
+//output file blah2 has "flivver"
+def main() return number {
+    var fp1 number;
+    var fp2 number;
+    fp1 = open("blah1");
+    fp2 = open("blah2");
+    write(fp1, "this is " );
+    write(fp2, "flivve");
+    write(fp1, "blah");
+    write(fp2, "r");
+    close(fp1);
+    close(fp2);
+    return 0;
+}
+//-
+//returns failure
+def main() return number {
+    var fp number;
+    fp = open(42);
+    return 0;
+}
+//-
+//returns failure
+def main() return number {
+    write("xyz","abc");
+    return 0;
+}
+//-
+//returns failure
+def main() return number {
+    read("xyz");
+    return 0;
+}
+//-
+//returns 0
+//input is "10\n"
+//output is "Total: 55\n"
+def main() return number {
+    var n number;
+    var total number;
+    var i number;
+    n = input();
+    total = 0;
+    i=0;
+    while( i <= n ){
+        total = total + i;
+        i = i + 1;
+    }
+    print("Total: ");
+    print(total);
+    print("\n");
+    return 0;
+}
