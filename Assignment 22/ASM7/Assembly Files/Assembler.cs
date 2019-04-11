@@ -578,8 +578,6 @@ public class Assembler
 
     /// <summary>
     /// var-decl -> VAR ID type
-    /// type -> non-array-type
-    /// non-array-type -> NUM | STRING
     /// </summary>
     /// <param name="n"></param>
     private void vardeclNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar, out int sizeOfThisVariable)
@@ -587,36 +585,55 @@ public class Assembler
         string vname = n.Children[1].Token.Lexeme;
         VarType type;
         typeNodeCode(n.Children[2], out type);
-        sizeOfThisVariable = 8;
-        int offset = sizeOfVariablesDeclaredSoFar + 8;
         if (symtable.ContainsInCurrentScope(vname)) //declare variable
+            throw new Exception("ERROR!!! Duplicate Decleration!! Symtable already contains: " + vname + " in this scope!!!");
+
+        sizeOfThisVariable = type.sizeOfThisVariable;   //get size of synthesized attribute
+        
+        if (symtable.ScopeCount == 1) //global
+            symtable[vname] = new VarInfo(type, label(), true);
+        else //the very first local is at rbp-8
         {
-            if (symtable[vname].VType == type)
-                symtable[vname] = new VarInfo(type, "rbp-" + offset);
-            else
-                throw new Exception("ERROR!!! Duplicate Decleration!! Symtable already contains: " + vname + " in this scope!!! Mismatch of type");
-        }
-        else
-        {
-            if (symtable.ScopeCount == 1) //global
-            {
-                symtable[vname] = new VarInfo(type, label());
-            }
-            else //the very first local is at rbp-8
-            {
-                symtable[vname] = new VarInfo(type, "rbp-" + offset);
-            }
+            int offset = sizeOfVariablesDeclaredSoFar + sizeOfThisVariable;
+            symtable[vname] = new VarInfo(type, "rbp-" + offset, false);
         }
     }
 
     /// <summary>
-    /// type -> non-array-type
+    /// type -> non-array-type | non-array-type LB num-list RB
     /// </summary>
     /// <param name="n"></param>
     /// <param name="type"></param>
     private void typeNodeCode(TreeNode n, out VarType type)
     {
-        nonarraytypeNodeCode(n.Children[0], out type);
+        if (n.Children.Count == 1)
+            nonarraytypeNodeCode(n.Children[0], out type);
+        else if (n.Children.Count == 4)
+        {
+            VarType t1;
+            nonarraytypeNodeCode(n.Children[0], out t1);
+            List<int> dims;
+            numlistNodeCode(n.Children[2], out dims);
+            type = new ArrayVarType(t1, dims);
+        }
+        else
+            throw new Exception("ERROR!!! Invalid Child, first child is: "+n.Children[0].Symbol+" num children: "+n.Children.Count);
+    }
+
+    /// <summary>
+    /// num-list -> NUM | NUM CMA num-list
+    /// </summary>
+    private void numlistNodeCode(TreeNode n, out List<int> L)
+    {
+        L = new List<int>();
+        while(true)
+        {
+            int num = Int32.Parse(n.Children[0].Token.Lexeme);
+            L.Add(num);
+            if (n.Children.Count == 1)  //recursion break
+                break;
+            n = n.Children[2];  //go to next child/numlist
+        }
     }
 
     /// <summary>
@@ -684,27 +701,49 @@ public class Assembler
     }
 
     /// <summary>
-    /// assign -> ID EQ expr
+    /// assign -> ID EQ expr | ID LB expr-list RB EQ expr
     /// </summary>
     /// <param name="n"></param>
     private void assignNodeCode(TreeNode n)
     {
         VarType t;
-        exprNodeCode(n.Children[2], out t);
-        emit("pop rax");
+        int childrenCount = n.Children.Count;
+        if (childrenCount == 3)
+            exprNodeCode(n.Children[2], out t);
+        else if (childrenCount == 6)
+            exprNodeCode(n.Children[5], out t);
+        else
+            throw new Exception("Error!!! assignment invalid number of nodes!! Children Count: "+n.Children.Count);
+
+        
         string vname = n.Children[0].Token.Lexeme;
-        if (!symtable.ContainsInCurrentScopes(vname))
+        if (vname == null || !symtable.ContainsInCurrentScopes(vname))
         {
             symtable.printScopes();
-            throw new Exception("ERROR!!! Undeclared Variable: " + vname);
+            throw new Exception("ERROR!!! Undeclared Variable or Variable is null: " + vname != null ? vname : "null");
         }
-        if (symtable[vname].VType != t)
+
+        var vinfo = symtable[vname];
+        if (childrenCount == 3) //scalar assignment
         {
-            symtable.printScopes();
-            throw new Exception("ERROR!!! Type Mismatch!!! " + vname +
-                ":(" + symtable[vname].Label + "," + symtable[vname].VType.ToString() + ") != " + t.ToString());
+            if (vinfo.VType != t)
+                throw new Exception("Error!! Type Mistmatch: " + vinfo.VType + "!=" + t);
+            if (vinfo.VType as ArrayVarType != null)
+                throw new Exception("Error!! Can not assign to an Array!");
+            emit("pop rax");    //pop from expr eval earlier
+            emit("mov [{0}], rax", vinfo.Label);
         }
-        emit("mov [{0}], rax", symtable[vname].Label);
+        else if(childrenCount == 6)
+        {
+            var typ = vinfo.VType as ArrayVarType;
+            if (typ == null)
+                throw new Exception("Error!! Variable is not an array!! Vtype: "+vinfo.VType == null ? "null" : vinfo.VType.typeString);
+            if (typ.baseType != t)
+                throw new Exception("Error!! Type mismatch!! "+typ.baseType+"!="+t);
+            putArrayAddressInRcx(vinfo, n.Children[2]);
+            emit("pop rax");          //get val from rhs
+            emit("mov [rcx], rax");
+        }
     }
 
     /// <summary>

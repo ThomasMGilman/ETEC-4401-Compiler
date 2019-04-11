@@ -49,7 +49,8 @@ expr-list' -> CMA expr-list | lambda
 braceblock -> LBR var-decl-list stmts RBR
 var-decl-list -> var-decl SEMI var-decl-list | lambda
 var-decl -> VAR ID type
-type -> non-array-type | non-array-type LB RB
+type -> non-array-type | non-array-type LB num-list RB
+num-list -> NUM | NUM CMA num-list
 non-array-type -> NUMBER | STRING
 stmts -> stmt stmts | lambda
 stmt -> cond | loop | return-stmt SEMI | assign SEMI | func-call SEMI
