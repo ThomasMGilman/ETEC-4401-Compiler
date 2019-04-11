@@ -109,7 +109,7 @@ public class Assembler
     private void outputExterns()
     {
         foreach (string ext in externs)
-            emit("extern {0}", ext);
+            emit("extern {0}", ext.Trim('"'));
     }
 
     /// <summary>
@@ -743,7 +743,7 @@ public class Assembler
                 throw new Exception("Error!! Variable is not an array!! Vtype: "+vinfo.VType == null ? "null" : vinfo.VType.typeString);
             if (typ.baseType != t)
                 throw new Exception("Error!! Type mismatch!! "+typ.baseType+"!="+t);
-            putArrayAddressInRcx(vinfo, n.Children[2]);
+            putArrayAddressInRcx(vinfo, n);
             emit("pop rax");          //get val from rhs
             emit("mov [rcx], rax");
         }
@@ -1192,7 +1192,7 @@ public class Assembler
                 if (vinfo == null)
                     throw new Exception("Error!!! Trying to access undeclared variable: "+vname);
 
-                putArrayAddressInRcx(vinfo, n);
+                putArrayAddressInRcx(vinfo, n.Children[0]);
                 type = (vinfo.VType as ArrayVarType).baseType;
                 break;
             default:
@@ -1212,6 +1212,7 @@ public class Assembler
             throw new Exception("ICE!!! Arraytype cannot be null or typ not Array type!! tpy: " + typ == null ? "null" : typ.typeString);
 
         List<VarType> types;
+        Console.WriteLine("NodeCount: "+n.Children.Count);
         exprlistNodeCode(n.Children[2], out types);
         if (types.Count != typ.arrayDimensions.Count)
             throw new Exception("Error!! Arrays dimension mismatch!!");
