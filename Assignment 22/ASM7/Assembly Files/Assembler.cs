@@ -139,8 +139,9 @@ public class Assembler
         emit("ret");
         emit("section .data");
         outputMagicConstants();
-        outputSymbolTableInfo();
         outputStringPoolInfo();
+        emit("section .bss");   //swap to bss for symbol table
+        outputSymbolTableInfo();
     }
 
     /// <summary>
@@ -178,7 +179,8 @@ public class Assembler
         {
             if(symtable.ContainsInCurrentScope(fname))
                 throw new Exception("Error!! duplicate function decleration in scope!! DupFuncName: " + fname);
-            symtable[fname] = new VarInfo(funcType, label());
+
+            symtable[fname] = new VarInfo(funcType, label(), symtable.ScopeCount == 1 ? true : false);
         }
         else
         {
@@ -736,7 +738,8 @@ public class Assembler
         else if(childrenCount == 6)
         {
             var typ = vinfo.VType as ArrayVarType;
-            if (typ == null)
+            Console.WriteLine("Vtype is null? {0}\nVtype: {1}", vinfo.VType == null, vinfo.VType.typeString);
+            if (vinfo.VType == null || vinfo.VType.typeString != "$array")
                 throw new Exception("Error!! Variable is not an array!! Vtype: "+vinfo.VType == null ? "null" : vinfo.VType.typeString);
             if (typ.baseType != t)
                 throw new Exception("Error!! Type mismatch!! "+typ.baseType+"!="+t);
@@ -1183,9 +1186,62 @@ public class Assembler
                     throw new Exception("ICE!!! Can't use VOID in math expressions");
                 emit("push rax");
                 break;
+            case "array-access":
+                vname = child.Children[0].Token.Lexeme;
+                var vinfo = symtable[vname];
+                if (vinfo == null)
+                    throw new Exception("Error!!! Trying to access undeclared variable: "+vname);
+
+                putArrayAddressInRcx(vinfo, n);
+                type = (vinfo.VType as ArrayVarType).baseType;
+                break;
             default:
                 throw new Exception("ICE!!! Expected NUM, LP, STRING-CONSTANT, or ID Recieved:" + child.Symbol);
         }
+    }
+
+    /// <summary>
+    /// array-access -> ID LB expr-list RB
+    /// </summary>
+    /// <param name="vinfo"></param>
+    /// <param name="n"></param>
+    private void putArrayAddressInRcx(VarInfo vinfo, TreeNode n)
+    {
+        ArrayVarType typ = vinfo.VType as ArrayVarType;
+        if (typ == null)
+            throw new Exception("ICE!!! Arraytype cannot be null or typ not Array type!! tpy: " + typ == null ? "null" : typ.typeString);
+
+        List<VarType> types;
+        exprlistNodeCode(n.Children[2], out types);
+        if (types.Count != typ.arrayDimensions.Count)
+            throw new Exception("Error!! Arrays dimension mismatch!!");
+
+        foreach (var t in types)
+        {
+            if (t != VarType.NUMBER)
+                throw new Exception("Error!! only numbers are valid as array indices!! type: " + t.typeString);
+        }
+
+        emit("mov rcx, 0");
+        for (int i = 0; i < typ.arrayDimensions.Count; i++)
+        {
+            int product = 1;
+            for (int j = i + 1; j < typ.arrayDimensions.Count; j++)
+                product *= typ.arrayDimensions[j];
+            emit("pop rax");                    //get next from expr-list
+            emit("movq xmm0, rax");             //convert to double
+            emit("cvtsd2si rax, xmm0");         //convert to int
+            emit("imul rax, rax,{0}", product); //dest, op1, op2
+            emit("add rcx, rax");
+        }
+
+        if (vinfo.isGlobal)
+        {
+            emit("shl rcx, 3"); //same as imul rcx, 8 but faster
+            emit("add rcx, {0}", vinfo.Label);
+        }
+        else
+            emit("lea rcx, [rcx*8+{0}]", vinfo.Label);
     }
 
     private void addParametersToSymbolTable(List<string> argNames, List<VarType> argTypes)
@@ -1193,7 +1249,7 @@ public class Assembler
         int offs = 16;
         for(int i = 0; i < argNames.Count; i++)
         {
-            symtable[argNames[i]] = new VarInfo(argTypes[i], "rbp+" + offs);
+            symtable[argNames[i]] = new VarInfo(argTypes[i], "rbp+" + offs, symtable[argNames[i]].isGlobal);
             offs += 8;
         }
     }
@@ -1216,16 +1272,14 @@ public class Assembler
     }
     private void outputSymbolTableInfo()
     {
-        foreach(Scope scope in symtable.scopes)
+        //output only globals
+        foreach(var vname in symtable.scopes[0].data.Keys)
         {
-            foreach(var vname in scope.data.Keys)
+            var vinfo = symtable[vname];
+            if(vinfo.VType as FuncVarType == null)
             {
-                var vinfo = symtable[vname];
-                if (vinfo.VType == VarType.NUMBER || vinfo.VType == VarType.STRING)
-                {
-                    emit("{0}:", vinfo.Label);
-                    emit("dq 0"); //null terminator
-                }
+                emit("{0}: ;{1}", vinfo.Label, vname);
+                emit("resb {0}", vinfo.VType.sizeOfThisVariable);
             }
         }
     }

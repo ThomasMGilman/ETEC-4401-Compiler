@@ -1,5 +1,4 @@
-public static class GrammarData {
-    public static string data = @"ADDOP -> [+]
+ADDOP -> [+]
 AND -> \band\b
 CLOSE -> \bclose\b
 CMA -> ,
@@ -67,5 +66,4 @@ sum -> sum ADDOP term | sum MINUS term | term
 term -> term MULOP neg | neg
 neg -> MINUS neg | factor
 factor -> NUM | LP expr RP | STRING-CONSTANT | ID | func-call | array-access
-array-access -> ID LB expr-list RB";
-}
+array-access -> ID LB expr-list RB

@@ -83,7 +83,7 @@ namespace ExeTools
                     var inp = String.Format(@"
 ""c:\program files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"" 
 cd ""{0}""
-link ""{1}"" ""/OUT:{2}"" /SUBSYSTEM:CONSOLE /nologo msvcrt.lib legacy_stdio_definitions.lib",
+link ""{1}"" ""/OUT:{2}"" /SUBSYSTEM:CONSOLE /nologo msvcrt.lib",
                         Directory.GetCurrentDirectory(), objfile, exefile);
                     Run(inp,"cmd");
                     break;

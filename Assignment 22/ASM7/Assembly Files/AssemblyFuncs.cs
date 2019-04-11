@@ -59,6 +59,8 @@ class ArrayVarType : VarType
     }
     public static bool operator == (ArrayVarType v1, ArrayVarType v2)
     {
+        if (object.ReferenceEquals(v1, null))
+            return object.ReferenceEquals(v2, null);
         return v1.Equals(v2);
     }
     public static bool operator != (ArrayVarType v1, ArrayVarType v2)
