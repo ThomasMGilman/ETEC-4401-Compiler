@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
 
 /// <summary>
@@ -13,7 +12,6 @@ public class Assembler
     static SymbolTable symtable;
     static int labelCounter;
     int cType;
-    static string[] externs = { "fopen", "fclose", "fscanf", "fprintf", "printf", "scanf", "fflush"};
 
     public Assembler(TreeNode root, int compilerType)
     {
@@ -106,12 +104,6 @@ public class Assembler
         emit("mov rsp, rbx");
     }
 
-    private void outputExterns()
-    {
-        foreach (string ext in externs)
-            emit("extern {0}", ext);
-    }
-
     /// <summary>
     /// program -> var-decl-list braceblock
     /// </summary>
@@ -121,187 +113,171 @@ public class Assembler
         if (n.Symbol != "program")
             throw new Exception("ICE!!!! Not looking at the start of the program.\n" +
                 "Symbol Recieved: ' " + n.Symbol + " ' Expected: ' program '");
-        outputExterns();
+        emit("extern fopen");
+        emit("extern fclose");
+        emit("extern fscanf");
+        emit("extern fprintf");
+        emit("extern scanf");
+        emit("extern printf");
+        emit("extern fflush");
 
         emit("default rel");
         emit("section .text");
         emit("global main");
-        int sizeOfVars;
-        vardecllistNodeCode(n.Children[0], 0, out sizeOfVars);
-        funcdecllistNodeCode(n.Children[1], true);
-        funcdecllistNodeCode(n.Children[1], false);
         emit("main:");
-        if (symtable["main"] == null || symtable["main"].VType.typeString != "$function")
-            throw new Exception("ERROR!! no Main Function!!!");
-        emit("call {0}", symtable["main"].Label);
+        emit("call theRealMain");
         emit("movq xmm0, rax");
         emit("cvtsd2si rax,xmm0");
         emit("ret");
+        emit("theRealMain:");
+
+        prologueCode();
+        int sizeOfVars;
+        vardecllistNodeCode(n.Children[0], 0, out sizeOfVars);
+        braceblockNodeCode(n.Children[1], sizeOfVars);
         emit("section .data");
-        outputMagicConstants();
         outputSymbolTableInfo();
         outputStringPoolInfo();
+        outputMagicConstants();
     }
 
     /// <summary>
-    /// func-decl-list -> func-decl func-decl-list | lambda
+    /// braceblock -> LBR var-decl-list stmts RBR
     /// </summary>
     /// <param name="n"></param>
-    /// <param name="justPutFunctionNameInSymtable"></param>
-    private void funcdecllistNodeCode(TreeNode n, bool justPutFunctionNameInSymtable)
+    private void braceblockNodeCode(TreeNode n, int sizeOfVariableInEnclosingBlocks)
     {
-        if (n.Children.Count == 2)
-        {
-            funcdeclNodeCode(n.Children[0], justPutFunctionNameInSymtable);
-            funcdecllistNodeCode(n.Children[1], justPutFunctionNameInSymtable);
-        }
-        else if (n.Children.Count != 0)
-            throw new Exception("ERROR!!! Invalid number of children for func-decl-list");
+        symtable.AddScope();
+
+        int sizeOfVariableInThisBlock;
+        vardecllistNodeCode(n.Children[1], sizeOfVariableInEnclosingBlocks, out sizeOfVariableInThisBlock);
+        if (sizeOfVariableInThisBlock > 0)
+            emit("sub rsp, {0}", sizeOfVariableInThisBlock);
+
+        stmtsNodeCode(n.Children[2], sizeOfVariableInEnclosingBlocks + sizeOfVariableInThisBlock);
+        if (sizeOfVariableInThisBlock > 0)
+            emit("add rsp, {0}", sizeOfVariableInThisBlock);
+        symtable.DeleteScope();
     }
 
     /// <summary>
-    /// func-decl -> DEF ID LP type-list RP optional-return-spec brace-block
+    /// var-decl-list -> var-decl SEMI var-decl-list | lambda
     /// </summary>
     /// <param name="n"></param>
-    private void funcdeclNodeCode(TreeNode n, bool justPutFunctionNameInSymtable)
-    {
-        var fname = n.Children[1].Token.Lexeme;
-        VarType retType;
-        optionalreturnspecNodeCode(n.Children[5], out retType);
-
-        List<VarType> argTypes;
-        List<string> argNames;
-        optionaltypelistNodeCode(n.Children[3], out argNames, out argTypes);
-
-        VarType funcType = new FuncVarType(argTypes, retType);
-        if(justPutFunctionNameInSymtable)
-        {
-            if(symtable.ContainsInCurrentScope(fname))
-                throw new Exception("Error!! duplicate function decleration in scope!! DupFuncName: " + fname);
-            symtable[fname] = new VarInfo(funcType, label());
-        }
-        else
-        {
-            symtable.AddScope();
-            addParametersToSymbolTable(argNames, argTypes);
-            emit("{0}:  ;{1}", symtable[fname].Label, fname);
-            prologueCode();
-            emit("; braceblock for {0}", fname);
-            braceblockNodeCode(n.Children[6], 0);
-            emit("; final epilogue for {0}", fname);
-            epilogueCode();
-            symtable.DeleteScope();
-        }
-    }
-
-    /// <summary>
-    /// optional-return-spec -> RETURN type | lambda
-    /// </summary>
-    /// <param name="n"></param>
-    /// <param name="type"></param>
-    private void optionalreturnspecNodeCode(TreeNode n, out VarType type)
-    {
-        if (n.Children.Count == 0)
-            type = VarType.VOID;
-        else
-            typeNodeCode(n.Children[1], out type);
-    }
-
-    /// <summary>
-    /// optional-type-list -> lambda | type-list
-    /// </summary>
-    /// <param name="n"></param>
-    /// <param name="nameL"></param>
-    /// <param name="typeL"></param>
-    private void optionaltypelistNodeCode(TreeNode n, out List<string> nameL, out List<VarType> typeL)
+    private void vardecllistNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar, out int sizeOfVariablesInThisDeclaration)
     {
         if (n.Children.Count == 0)
         {
-            nameL = new List<string>();
-            typeL = new List<VarType>();
+            sizeOfVariablesInThisDeclaration = 0;
+            return;
         }
-        else
-            typelistNodeCode(n.Children[0], out nameL, out typeL);
-    }
-
-    /// <summary>
-    /// type-list -> ID type typelist'
-    /// </summary>
-    /// <param name="n"></param>
-    /// <param name="nameL"></param>
-    /// <param name="typeL"></param>
-    private void typelistNodeCode(TreeNode n, out List<string> nameL, out List<VarType> typeL)
-    {
-        typeL = new List<VarType>();
-        nameL = new List<string>();
-        nameL.Add(n.Children[0].Token.Lexeme);
-        VarType ptype;
-        typeNodeCode(n.Children[1], out ptype);
-        typeL.Add(ptype);
-
-        List<VarType> typeL2;
-        List<string> nameL2;
-        typelistprimeNodeCode(n.Children[2], out nameL2, out typeL2);
-        nameL.AddRange(nameL2);
-        typeL.AddRange(typeL2);
-    }
-
-    /// <summary>
-    /// type-list' -> CMA type-list | lambda
-    /// </summary>
-    /// <param name="n"></param>
-    /// <param name="nameL"></param>
-    /// <param name="typeL"></param>
-    private void typelistprimeNodeCode(TreeNode n, out List<string> nameL, out List<VarType> typeL)
-    {
-        if (n.Children.Count > 0)
-            typelistNodeCode(n.Children[1], out nameL, out typeL);
+        else if (n.Children.Count == 3 && n.Children[0].Symbol == "var-decl")
+        {
+            int sz;
+            vardeclNodeCode(n.Children[0], sizeOfVariablesDeclaredSoFar, out sz);
+            int sz2;
+            vardecllistNodeCode(n.Children[2], sizeOfVariablesDeclaredSoFar + sz, out sz2);
+            sizeOfVariablesInThisDeclaration = sz + sz2;
+        }
         else
         {
-            nameL = new List<string>();
-            typeL = new List<VarType>();
+            symtable.printScopes();
+            throw new Exception("ICE!!! unrecognized production Expected var-decl or lambda but got size: "
+                + n.Children.Count + " sym: " + (n.Children.Count > 0 ? n.Children[0].Symbol : "null"));
         }
     }
 
     /// <summary>
-    /// func-call -> ID LP optional-expr-list RP | builtin-func-call
+    /// var-decl -> VAR ID type
+    /// type -> non-array-type
+    /// non-array-type -> NUM | STRING
+    /// </summary>
+    /// <param name="n"></param>
+    private void vardeclNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar, out int sizeOfThisVariable)
+    {
+        string vname = n.Children[1].Token.Lexeme;
+        string vtypestr = n.Children[2].Children[0].Children[0].Token.Symbol;
+        VarType vtype = (VarType)Enum.Parse(typeof(VarType), vtypestr);
+        sizeOfThisVariable = 8;
+        int offset = sizeOfVariablesDeclaredSoFar + 8;
+        if (symtable.ContainsInCurrentScope(vname)) //setting variable to new value as long as its in scope
+        {
+            if(symtable[vname].VType == vtype)
+                symtable[vname] = new VarInfo(vtype, "rbp-" + offset);
+            else
+                throw new Exception("ERROR!!! Duplicate Decleration!! Symtable already contains: " + vname + " in this scope!!! Mismatch of type");
+        }
+        else
+        {
+            if (symtable.ScopeCount == 1) //global
+            {
+                symtable[vname] = new VarInfo(vtype, label());
+            }
+            else //the very first local is at rbp-8
+            {
+                symtable[vname] = new VarInfo(vtype, "rbp-" + offset);
+            }
+        }
+    }
+
+    /// <summary>
+    /// stmts -> stmt stmts | lambda
+    /// </summary>
+    /// <param name="n"></param>
+    private void stmtsNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar)
+    {
+        if (n.Children.Count == 0)
+            return;
+        stmtNodeCode(n.Children[0], sizeOfVariablesDeclaredSoFar);
+        stmtsNodeCode(n.Children[1], sizeOfVariablesDeclaredSoFar);
+    }
+
+    /// <summary>
+    /// stmt -> cond | loop | return-stmt SEMI | assign SEMI | func-call SEMI
+    /// </summary>
+    /// <param name="n"></param>
+    private void stmtNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar)
+    {
+        TreeNode c = n.Children[0];
+        switch (c.Symbol)
+        {
+            case "cond":
+                condNodeCode(c, sizeOfVariablesDeclaredSoFar);
+                break;
+            case "loop":
+                loopNodeCode(c, sizeOfVariablesDeclaredSoFar);
+                break;
+            case "return-stmt":
+                returnstmtNodeCode(c, sizeOfVariablesDeclaredSoFar);
+                break;
+            case "assign":
+                assignNodeCode(c);
+                break;
+            case "func-call":
+                VarType type;
+                funccallNodeCode(c, out type);
+                break;
+            default:
+                throw new Exception("ICE!!!!! Symbol not recognized as a valid start to stmt!!\n" +
+                    "Symbol Got: ' " + n.Symbol + " ' Expected: ' cond ', ' loop ', ' return-stmt ', or ' assign '");
+        }
+    }
+
+    /// <summary>
+    /// func-call -> builtin-func-call
+    /// builtin-func-call -> PRINT LP expr RP | 
+    ///     INPUT LP RP | 
+    ///     OPEN LP expr RP | 
+    ///     READ LP expr RP | 
+    ///     WRITE LP expr CMA expr RP | 
+    ///     CLOSE LP expr RP
     /// </summary>
     /// <param name="n"></param>
     private void funccallNodeCode(TreeNode n, out VarType type)
     {
-        if (n.Children.Count == 1)
-            builtin_func_call(n.Children[0], out type);
-        else if(n.Children.Count == 4)
-        {
-            var fname = n.Children[0].Token.Lexeme;
-            var info = symtable[fname];
-            if (info == null)
-                throw new Exception("ERROR!!! Function does not exist or exist within Scope!!! Requested func: " + fname);
-
-            var funcType = symtable[fname].VType as FuncVarType;
-            if (funcType == null)
-                throw new Exception("ERROR!!! Can't call a non-function!!! Requested func: " + fname);
-
-            List<VarType> actualTypes;
-            optionalexprListNodeCode(n.Children[2], out actualTypes);
-
-            if (!funcType.ArgTypes.SequenceEqual(actualTypes))
-            {
-                printTypesListInfo(actualTypes);
-                throw new Exception("Error!! Function types or count mismatch!!! FuncName: " + fname + " Expected type: " + info.VType.typeString);
-            }
-            emit("call {0}", symtable[fname].Label);
-
-            //pop parameters from the stack
-            int sz = 8 * actualTypes.Count;
-            if (sz > 0)
-                emit("add rsp, {0}", sz);
-
-            type = (symtable[fname].VType as FuncVarType).RetType;
-        }
-        else
+        if (n.Children.Count != 1)
             throw new Exception("ERROR!!! Expected Child Count of 1 and builtin-func-call.\nInstead got Count:"+ n.Children.Count +" Symbol: "+ n.Children[0].Symbol);
-        
+        builtin_func_call(n.Children[0], out type);
     }
 
     /// <summary>
@@ -373,8 +349,8 @@ public class Assembler
             type = VarType.VOID;
         }
         else
-            throw new Exception("ERROR!! Expected to print type STRING or NUMBER. Instead Recieved: " + t);
-
+            throw new Exception("ERROR!! Expected to print type STRING or NUMBER. Instead Recieved: "+t);
+        
     }
 
     /// <summary>
@@ -434,8 +410,8 @@ public class Assembler
             type = VarType.NUMBER;
         }
         else
-            throw new Exception("ERROR!!! expected VarType NUMBER to Read file, instead Recieved: " + t);
-
+            throw new Exception("ERROR!!! expected VarType NUMBER to Read file, instead Recieved: "+t);
+        
     }
 
     /// <summary>
@@ -466,8 +442,8 @@ public class Assembler
         VarType t1, t2;
         exprNodeCode(n.Children[2], out t2);    //handle
         exprNodeCode(n.Children[4], out t1);    //data to write
-        if (t2 != VarType.NUMBER)
-            throw new Exception("Error!!! Expected type ' NUMBER ' for write handle, Recieved: " + t2);
+        if(t2 != VarType.NUMBER)
+            throw new Exception("Error!!! Expected type ' NUMBER ' for write handle, Recieved: "+t2);
         emit("pop {0}", argRegister(2));            //get data to write
         if (t1 == VarType.NUMBER)
         {
@@ -481,206 +457,12 @@ public class Assembler
             emit("mov rax,1");                      //num fp variadic args
         }
         else
-            throw new Exception("Expected to write type ' NUMBER ', or ' STRING ' instead Recieved: " + t1);
+            throw new Exception("Expected to write type ' NUMBER ', or ' STRING ' instead Recieved: "+t1);
         emit("pop {0}", argRegister(0));            //get filepointer
         doFuncCall("fprintf");
         emit("mov {0}, 0", argRegister(0));
         doFuncCall("fflush");
         type = VarType.VOID;
-    }
-
-    /// <summary>
-    /// optional-expr-list -> lambda | expr-list
-    /// </summary>
-    /// <param name="n"></param>
-    /// <param name="types"></param>
-    private void optionalexprListNodeCode(TreeNode n, out List<VarType> types)
-    {
-        if (n.Children.Count == 0)
-            types = new List<VarType>();
-        else
-            exprlistNodeCode(n.Children[0], out types);
-    }
-
-    /// <summary>
-    /// expr-list -> expr expr-list'
-    /// </summary>
-    /// <param name="n"></param>
-    /// <param name="types"></param>
-    private void exprlistNodeCode(TreeNode n, out List<VarType> types)
-    {
-        VarType t0;
-        List<VarType> lst;
-
-        exprlistprimeNodeCode(n.Children[1], out lst);
-        exprNodeCode(n.Children[0], out t0);
-
-        types = new List<VarType>();
-        types.Add(t0);
-        types.AddRange(lst);
-    }
-
-    /// <summary>
-    /// expr-list' -> CMA expr-list | lambda
-    /// </summary>
-    /// <param name="n"></param>
-    /// <param name="types"></param>
-    private void exprlistprimeNodeCode(TreeNode n, out List<VarType> types)
-    {
-        if (n.Children.Count > 0)
-            exprlistNodeCode(n.Children[1], out types);
-        else
-            types = new List<VarType>();
-    }
-
-    /// <summary>
-    /// braceblock -> LBR var-decl-list stmts RBR
-    /// </summary>
-    /// <param name="n"></param>
-    private void braceblockNodeCode(TreeNode n, int sizeOfVariableInEnclosingBlocks)
-    {
-        int sizeOfVariableInThisBlock;
-        vardecllistNodeCode(n.Children[1], sizeOfVariableInEnclosingBlocks, out sizeOfVariableInThisBlock);
-        if (sizeOfVariableInThisBlock > 0)
-            emit("sub rsp, {0}", sizeOfVariableInThisBlock);
-
-        stmtsNodeCode(n.Children[2], sizeOfVariableInEnclosingBlocks + sizeOfVariableInThisBlock);
-        if (sizeOfVariableInThisBlock > 0)
-            emit("add rsp, {0}", sizeOfVariableInThisBlock);
-    }
-
-    /// <summary>
-    /// var-decl-list -> var-decl SEMI var-decl-list | lambda
-    /// </summary>
-    /// <param name="n"></param>
-    private void vardecllistNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar, out int sizeOfVariablesInThisDeclaration)
-    {
-        if (n.Children.Count == 0)
-        {
-            sizeOfVariablesInThisDeclaration = 0;
-            return;
-        }
-        else if (n.Children.Count == 3 && n.Children[0].Symbol == "var-decl")
-        {
-            int sz;
-            vardeclNodeCode(n.Children[0], sizeOfVariablesDeclaredSoFar, out sz);
-            int sz2;
-            vardecllistNodeCode(n.Children[2], sizeOfVariablesDeclaredSoFar + sz, out sz2);
-            sizeOfVariablesInThisDeclaration = sz + sz2;
-        }
-        else
-        {
-            symtable.printScopes();
-            throw new Exception("ICE!!! unrecognized production Expected var-decl or lambda but got size: "
-                + n.Children.Count + " sym: " + (n.Children.Count > 0 ? n.Children[0].Symbol : "null"));
-        }
-    }
-
-    /// <summary>
-    /// var-decl -> VAR ID type
-    /// type -> non-array-type
-    /// non-array-type -> NUM | STRING
-    /// </summary>
-    /// <param name="n"></param>
-    private void vardeclNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar, out int sizeOfThisVariable)
-    {
-        string vname = n.Children[1].Token.Lexeme;
-        VarType type;
-        typeNodeCode(n.Children[2], out type);
-        sizeOfThisVariable = 8;
-        int offset = sizeOfVariablesDeclaredSoFar + 8;
-        if (symtable.ContainsInCurrentScope(vname)) //declare variable
-        {
-            if (symtable[vname].VType == type)
-                symtable[vname] = new VarInfo(type, "rbp-" + offset);
-            else
-                throw new Exception("ERROR!!! Duplicate Decleration!! Symtable already contains: " + vname + " in this scope!!! Mismatch of type");
-        }
-        else
-        {
-            if (symtable.ScopeCount == 1) //global
-            {
-                symtable[vname] = new VarInfo(type, label());
-            }
-            else //the very first local is at rbp-8
-            {
-                symtable[vname] = new VarInfo(type, "rbp-" + offset);
-            }
-        }
-    }
-
-    /// <summary>
-    /// type -> non-array-type
-    /// </summary>
-    /// <param name="n"></param>
-    /// <param name="type"></param>
-    private void typeNodeCode(TreeNode n, out VarType type)
-    {
-        nonarraytypeNodeCode(n.Children[0], out type);
-    }
-
-    /// <summary>
-    /// non-array-type -> NUMBER | STRING
-    /// </summary>
-    /// <param name="n"></param>
-    /// <param name="type"></param>
-    private void nonarraytypeNodeCode(TreeNode n, out VarType type)
-    {
-        string sym = n.Children[0].Symbol;
-        switch (sym)
-        {
-            case "NUMBER":
-                type = VarType.NUMBER;
-                break;
-            case "STRING":
-                type = VarType.STRING;
-                break;
-            default:
-                throw new Exception("ERROR!! Expected type NUMBER, or STRING for non-array-type!! Recieved: " + sym);
-        }
-    }
-
-    /// <summary>
-    /// stmts -> stmt stmts | lambda
-    /// </summary>
-    /// <param name="n"></param>
-    private void stmtsNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar)
-    {
-        if (n.Children.Count == 0)
-            return;
-        stmtNodeCode(n.Children[0], sizeOfVariablesDeclaredSoFar);
-        stmtsNodeCode(n.Children[1], sizeOfVariablesDeclaredSoFar);
-    }
-
-    /// <summary>
-    /// stmt -> cond | loop | return-stmt SEMI | assign SEMI | func-call SEMI
-    /// </summary>
-    /// <param name="n"></param>
-    private void stmtNodeCode(TreeNode n, int sizeOfVariablesDeclaredSoFar)
-    {
-        TreeNode c = n.Children[0];
-        switch (c.Symbol)
-        {
-            case "cond":
-                condNodeCode(c, sizeOfVariablesDeclaredSoFar);
-                break;
-            case "loop":
-                loopNodeCode(c, sizeOfVariablesDeclaredSoFar);
-                break;
-            case "return-stmt":
-                returnstmtNodeCode(c, sizeOfVariablesDeclaredSoFar);
-                break;
-            case "assign":
-                assignNodeCode(c);
-                break;
-            case "func-call":
-                VarType type;
-                funccallNodeCode(c, out type);
-                break;
-            default:
-                throw new Exception("ICE!!!!! Symbol not recognized as a valid start to stmt!!\n" +
-                    "Symbol Got: ' " + n.Symbol + " ' Expected: ' cond ', ' loop ', ' return-stmt ', or ' assign '");
-        }
     }
 
     /// <summary>
@@ -693,7 +475,7 @@ public class Assembler
         exprNodeCode(n.Children[2], out t);
         emit("pop rax");
         string vname = n.Children[0].Token.Lexeme;
-        if (!symtable.ContainsInCurrentScopes(vname))
+        if (!symtable.ContainsInCurrentScope(vname))
         {
             symtable.printScopes();
             throw new Exception("ERROR!!! Undeclared Variable: " + vname);
@@ -1123,20 +905,23 @@ public class Assembler
                 break;
             case "ID":
                 string vname = n.Children[0].Token.Lexeme;
-                if (!symtable.ContainsInCurrentScopes(vname))
+                if (!symtable.ContainsInCurrentScope(vname))
                 {
                     symtable.printScopes();
                     throw new Exception("ERROR!!! Undeclared Variable: " + vname);
                 }
                 VarInfo vi = symtable[vname];
-                if(vi.VType == VarType.NUMBER || vi.VType == VarType.STRING)
+                switch (vi.VType)
                 {
-                    emit("mov rax,[{0}]", symtable[vname].Label);
-                    emit("push rax");
-                    type = vi.VType;
+                    case VarType.NUMBER:
+                    case VarType.STRING:
+                        emit("mov rax,[{0}]", symtable[vname].Label);
+                        emit("push rax");
+                        break;
+                    default:
+                        throw new Exception("ICE!!! Expected type NUMBER or STRING, Recieved: "+vi.VType);
                 }
-                else
-                    throw new Exception("ICE!!! Expected type NUMBER or STRING, Recieved: " + vi.VType);
+                type = vi.VType;
                 break;
             case "func-call":
                 funccallNodeCode(child, out type);
@@ -1146,16 +931,6 @@ public class Assembler
                 break;
             default:
                 throw new Exception("ICE!!! Expected NUM, LP, STRING-CONSTANT, or ID Recieved:" + child.Symbol);
-        }
-    }
-
-    private void addParametersToSymbolTable(List<string> argNames, List<VarType> argTypes)
-    {
-        int offs = 16;
-        for(int i = 0; i < argNames.Count; i++)
-        {
-            symtable[argNames[i]] = new VarInfo(argTypes[i], "rbp+" + offs);
-            offs += 8;
         }
     }
 
@@ -1169,12 +944,6 @@ public class Assembler
         lbl = stringPool[s];
     }
 
-    private void printTypesListInfo(List<VarType> types)
-    {
-        Console.WriteLine("Count:{0}, VarTypes: ", types.Count);
-        foreach(VarType v in types)
-            Console.WriteLine("\tType:{0}", v.typeString);
-    }
     private void outputSymbolTableInfo()
     {
         foreach(Scope scope in symtable.scopes)
@@ -1190,6 +959,7 @@ public class Assembler
             }
         }
     }
+
     private void outputStringPoolInfo()
     {
         foreach(var tmp in stringPool)
@@ -1203,6 +973,7 @@ public class Assembler
             emit("db 0"); //null terminator
         }
     }
+
     private void makeDouble_and_push(string number)
     {
         double d = Convert.ToDouble(number);

@@ -31,6 +31,10 @@ class SymbolTable //done
     }
     public bool ContainsInCurrentScope(string varname)
     {
+        return scopes[scopes.Count - 1][varname] != null;
+    }
+    public bool ContainsInCurrentScopes(string varname)
+    {
         for(int i = scopes.Count - 1; i >= 0; i--)
         {
             if(scopes[i][varname] != null)

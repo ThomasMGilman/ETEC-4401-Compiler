@@ -137,24 +137,12 @@ public class Assembler
         VarType vtype = (VarType)Enum.Parse(typeof(VarType), vtypestr);
         sizeOfThisVariable = 8;
         int offset = sizeOfVariablesDeclaredSoFar + 8;
-        if (symtable.ContainsInCurrentScope(vname)) //setting variable to new value as long as its in scope
-        {
-            if(symtable[vname].VType == vtype)
-                symtable[vname] = new VarInfo(vtype, "rbp-" + offset);
-            else
+        if (symtable.ContainsInCurrentScope(vname)) 
                 throw new Exception("ERROR!!! Duplicate Decleration!! Symtable already contains: " + vname + " in this scope!!! Mismatch of type");
-        }
-        else
-        {
-            if (symtable.ScopeCount == 1) //global
-            {
-                symtable[vname] = new VarInfo(vtype, label());
-            }
-            else //the very first local is at rbp-8
-            {
-                symtable[vname] = new VarInfo(vtype, "rbp-" + offset);
-            }
-        }
+        if (symtable.ScopeCount == 1) //global
+            symtable[vname] = new VarInfo(vtype, label());
+        else //the very first local is at rbp-8
+            symtable[vname] = new VarInfo(vtype, "rbp-" + offset);
     }
 
     /// <summary>
@@ -206,7 +194,7 @@ public class Assembler
         exprNodeCode(n.Children[2], out t);
         emit("pop rax");
         string vname = n.Children[0].Token.Lexeme;
-        if (!symtable.ContainsInCurrentScope(vname))
+        if (!symtable.ContainsInCurrentScopes(vname))
         {
             symtable.printScopes();
             throw new Exception("ERROR!!! Undeclared Variable: " + vname);
@@ -636,7 +624,7 @@ public class Assembler
                 break;
             case "ID":
                 string vname = n.Children[0].Token.Lexeme;
-                if (!symtable.ContainsInCurrentScope(vname))
+                if (!symtable.ContainsInCurrentScopes(vname))
                 {
                     symtable.printScopes();
                     throw new Exception("ERROR!!! Undeclared Variable: " + vname);

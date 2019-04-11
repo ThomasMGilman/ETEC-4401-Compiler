@@ -54,7 +54,6 @@ public class compiler : CompilerFuncs
         productionDict = new Dictionary<string, Production>();
         Follows = new Dictionary<string, HashSet<string>>();
         LLTable = new Dictionary<string, Dictionary<string, HashSet<string>>>();
-        symtable = new Dictionary<string, dynamic>();
         productionTreeRoot = null;
         startState = null;
 
@@ -126,11 +125,6 @@ public class compiler : CompilerFuncs
         return startState;
     }
 
-    public void Interpret()
-    {
-        Interpret(productionTreeRoot);
-    }
-
     public void dumpLR_DFA()
     {
         dumpLR_DFA(startState, grammarFile == null ? "default.txt" : grammarFile, inputFile, compilerType);
@@ -192,11 +186,6 @@ public class Compiler
         File.WriteAllText(asmfile, asmText);
         ExeTools.ExeTools.Assemble(asmfile, objfile);
         ExeTools.ExeTools.Link(objfile, exefile);
-    }
-    public static void interpret(string gFile, string iFile)
-    {
-        c = new compiler(gFile, iFile);
-        c.Interpret();
     }
     public static void makelr0dfa(string gFile)
     {

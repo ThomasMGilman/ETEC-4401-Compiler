@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-enum VarType { NUMBER, STRING };
+enum VarType { NUMBER, STRING , VOID};
 
 class SymbolTable //done
 {
@@ -31,16 +31,13 @@ class SymbolTable //done
     }
     public bool ContainsInCurrentScope(string varname)
     {
-        return scopes[scopes.Count - 1][varname] != null;
-    }
-    public bool ContainsInCurrentScopes(string varname)
-    {
-        for (int i = scopes.Count - 1; i >= 0; i--)
+        for(int i = scopes.Count - 1; i >= 0; i--)
         {
-            if (scopes[i][varname] != null)
+            if(scopes[i][varname] != null)
                 return true;
         }
         return false;
+        
     }
     public void AddScope()
     {
