@@ -122,6 +122,19 @@ class FuncVarType : VarType
     }
 }
 
+class VarInfo
+{
+    public string Label; //assembly label for this var
+    public bool isGlobal;
+    public VarType VType; //"Type" is a builtin name
+    public VarInfo(VarType t, string label, bool isGlobal)
+    {
+        this.VType = t;
+        this.Label = label;
+        this.isGlobal = isGlobal;
+    }
+}
+
 class SymbolTable //done
 {
     public List<Scope> scopes = new List<Scope>();
@@ -181,19 +194,6 @@ class SymbolTable //done
                 Console.WriteLine("\t\t{0} : ({1}, {2})", pair.Key, pair.Value.Label, pair.Value.VType.ToString());
             }
         }
-    }
-}
-
-class VarInfo
-{
-    public string Label; //assembly label for this var
-    public bool isGlobal;
-    public VarType VType; //"Type" is a builtin name
-    public VarInfo(VarType t, string label, bool isGlobal)
-    {
-        this.VType      = t;
-        this.Label      = label;
-        this.isGlobal   = isGlobal;
     }
 }
 

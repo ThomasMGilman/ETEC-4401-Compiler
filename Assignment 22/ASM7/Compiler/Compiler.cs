@@ -81,7 +81,7 @@ public class compiler : CompilerFuncs
     {
         //fullTestPrint();
         //printLRTable(LRTable);
-        //getTree();
+        LLdot.dumpIt(productionTreeRoot);
         Assembler asmblr = new Assembler(productionTreeRoot, compilerType);
         return asmblr.getASM();
     }

@@ -215,7 +215,7 @@ namespace Test {
                         }
                         Console.WriteLine("-----------------");
                     }
-                    //Console.ReadLine();
+                    Console.ReadLine();
                     Environment.Exit(1);
                 }
             }

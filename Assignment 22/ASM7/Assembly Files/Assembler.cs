@@ -587,14 +587,14 @@ public class Assembler
         string vname = n.Children[1].Token.Lexeme;
         VarType type;
         typeNodeCode(n.Children[2], out type);
-        if (symtable.ContainsInCurrentScope(vname)) //declare variable
+        if (symtable.ContainsInCurrentScope(vname))     //duplicate Variable
             throw new Exception("ERROR!!! Duplicate Decleration!! Symtable already contains: " + vname + " in this scope!!!");
 
         sizeOfThisVariable = type.sizeOfThisVariable;   //get size of synthesized attribute
         
         if (symtable.ScopeCount == 1) //global
             symtable[vname] = new VarInfo(type, label(), true);
-        else //the very first local is at rbp-8
+        else //the first local is at rbp-sizeof(var)
         {
             int offset = sizeOfVariablesDeclaredSoFar + sizeOfThisVariable;
             symtable[vname] = new VarInfo(type, "rbp-" + offset, false);
@@ -608,18 +608,21 @@ public class Assembler
     /// <param name="type"></param>
     private void typeNodeCode(TreeNode n, out VarType type)
     {
-        if (n.Children.Count == 1)
-            nonarraytypeNodeCode(n.Children[0], out type);
-        else if (n.Children.Count == 4)
+        VarType t1;
+        nonarraytypeNodeCode(n.Children[0], out t1);        //Get type
+        if (n.Children.Count == 4)
         {
-            VarType t1;
-            nonarraytypeNodeCode(n.Children[0], out t1);
             List<int> dims;
             numlistNodeCode(n.Children[2], out dims);
+            foreach(var i in dims)
+            {
+                if (i < 0)
+                    throw new Exception("Error!! Value is not positive!! i: "+i.ToString());
+            }
             type = new ArrayVarType(t1, dims);
         }
         else
-            throw new Exception("ERROR!!! Invalid Child, first child is: "+n.Children[0].Symbol+" num children: "+n.Children.Count);
+            type = t1;
     }
 
     /// <summary>
@@ -726,23 +729,24 @@ public class Assembler
         }
 
         var vinfo = symtable[vname];
-        if (childrenCount == 3) //scalar assignment
+        if (childrenCount == 3)         //Scalar assignment
         {
             if (vinfo.VType != t)
                 throw new Exception("Error!! Type Mistmatch: " + vinfo.VType + "!=" + t);
             if (vinfo.VType as ArrayVarType != null)
-                throw new Exception("Error!! Can not assign to an Array!");
+                throw new Exception("Error!! Can not assign array to val!!");
+
             emit("pop rax");    //pop from expr eval earlier
             emit("mov [{0}], rax", vinfo.Label);
         }
-        else if(childrenCount == 6)
+        else                            //Array assignment
         {
             var typ = vinfo.VType as ArrayVarType;
-            Console.WriteLine("Vtype is null? {0}\nVtype: {1}", vinfo.VType == null, vinfo.VType.typeString);
-            if (vinfo.VType == null || vinfo.VType.typeString != "$array")
-                throw new Exception("Error!! Variable is not an array!! Vtype: "+vinfo.VType == null ? "null" : vinfo.VType.typeString);
+            if (typ == null)
+                throw new Exception("Error!! Variable is not an array or is null!! Vtype: "+vinfo.VType == null ? "null" : vinfo.VType.typeString);
             if (typ.baseType != t)
                 throw new Exception("Error!! Type mismatch!! "+typ.baseType+"!="+t);
+
             putArrayAddressInRcx(vinfo, n);
             emit("pop rax");          //get val from rhs
             emit("mov [rcx], rax");
@@ -1193,6 +1197,8 @@ public class Assembler
                     throw new Exception("Error!!! Trying to access undeclared variable: "+vname);
 
                 putArrayAddressInRcx(vinfo, n.Children[0]);
+                emit("mov rax, [rcx]");
+                emit("push rax");
                 type = (vinfo.VType as ArrayVarType).baseType;
                 break;
             default:
@@ -1204,16 +1210,15 @@ public class Assembler
     /// array-access -> ID LB expr-list RB
     /// </summary>
     /// <param name="vinfo"></param>
-    /// <param name="n"></param>
-    private void putArrayAddressInRcx(VarInfo vinfo, TreeNode n)
+    /// <param name="exprListNode"></param>
+    private void putArrayAddressInRcx(VarInfo vinfo, TreeNode exprListNode)
     {
         ArrayVarType typ = vinfo.VType as ArrayVarType;
         if (typ == null)
             throw new Exception("ICE!!! Arraytype cannot be null or typ not Array type!! tpy: " + typ == null ? "null" : typ.typeString);
 
         List<VarType> types;
-        Console.WriteLine("NodeCount: "+n.Children.Count);
-        exprlistNodeCode(n.Children[2], out types);
+        exprlistNodeCode(exprListNode.Children[2], out types); //expr-list -> expr expr-list'
         if (types.Count != typ.arrayDimensions.Count)
             throw new Exception("Error!! Arrays dimension mismatch!!");
 
