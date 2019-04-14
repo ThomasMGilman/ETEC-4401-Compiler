@@ -83,7 +83,7 @@ namespace ExeTools
                     var inp = String.Format(@"
 ""c:\program files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"" 
 cd ""{0}""
-link ""{1}"" ""/OUT:{2}"" /SUBSYSTEM:CONSOLE /nologo msvcrt.lib legacy_stdio_definitions.lib",
+link ""{1}"" ""/OUT:{2}"" /SUBSYSTEM:CONSOLE /LARGEADDRESSAWARE:NO /nologo msvcrt.lib legacy_stdio_definitions.lib",
                         Directory.GetCurrentDirectory(), objfile, exefile);
                     Run(inp,"cmd");
                     break;
@@ -91,7 +91,7 @@ link ""{1}"" ""/OUT:{2}"" /SUBSYSTEM:CONSOLE /nologo msvcrt.lib legacy_stdio_def
                     Run("", "ld", "-o", exefile, objfile, "-macosx_version_min", "10.13", "-lSystem");
                     break;
             }
-            if (!System.IO.File.Exists(exefile))
+            if (!File.Exists(exefile))
                 throw new Exception("Link failed");
         }
 

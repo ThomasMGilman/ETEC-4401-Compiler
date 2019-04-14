@@ -13,7 +13,7 @@ public class Assembler
     static SymbolTable symtable;
     static int labelCounter;
     int cType;
-    static string[] externs = { "fopen", "fclose", "fscanf", "fprintf", "printf", "scanf", "fflush"};
+    static string[] externs = { "fopen", "fclose", "fscanf", "fprintf", "printf", "scanf", "fflush", "memcpy"};
 
     public Assembler(TreeNode root, int compilerType)
     {
@@ -731,13 +731,26 @@ public class Assembler
         var vinfo = symtable[vname];
         if (childrenCount == 3)         //Scalar assignment
         {
+            var atyp = t as ArrayVarType;
             if (vinfo.VType != t)
                 throw new Exception("Error!! Type Mistmatch: " + vinfo.VType + "!=" + t);
-            if (vinfo.VType as ArrayVarType != null)
+            if (vinfo.VType as ArrayVarType != null && atyp == null)
                 throw new Exception("Error!! Can not assign array to val!!");
 
-            emit("pop rax");    //pop from expr eval earlier
-            emit("mov [{0}], rax", vinfo.Label);
+            if (atyp != null)
+            {
+                emit("pop {0}", argRegister(1)); //src
+                emit("mov [{0}], {1}", vinfo.Label, argRegister(0)); //dst
+                makeDouble_and_push(atyp.arrayDimensions.Count.ToString());
+                movRaxTo_xmmRegister("xmm0");
+                emit("movq xmm0, {1}", argRegister(2)); //size
+                doFuncCall("memcpy");
+            }
+            else
+            {
+                emit("pop rax");    //pop from expr eval earlier
+                emit("mov [{0}], rax", vinfo.Label);
+            }
         }
         else                            //Array assignment
         {
@@ -1175,14 +1188,18 @@ public class Assembler
                     throw new Exception("ERROR!!! Undeclared Variable: " + vname);
                 }
                 VarInfo vi = symtable[vname];
-                if(vi.VType == VarType.NUMBER || vi.VType == VarType.STRING)
+                ArrayVarType atyp = vi.VType as ArrayVarType;
+                if (vi.VType == VarType.NUMBER || vi.VType == VarType.STRING || atyp != null)
                 {
-                    emit("mov rax,[{0}]", symtable[vname].Label);
+                    if (atyp != null)
+                        emit("mov rax, {0}", symtable[vname].Label);    //push address
+                    else
+                        emit("mov rax,[{0}]", symtable[vname].Label);   //push value
                     emit("push rax");
                     type = vi.VType;
                 }
                 else
-                    throw new Exception("ICE!!! Expected type NUMBER or STRING, Recieved: " + vi.VType);
+                    throw new Exception("ICE!!! Expected type NUMBER, STRING, or ARRAY. Recieved: " + vi.VType);
                 break;
             case "func-call":
                 funccallNodeCode(child, out type);

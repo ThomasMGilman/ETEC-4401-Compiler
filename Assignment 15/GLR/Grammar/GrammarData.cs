@@ -49,11 +49,12 @@ expr-list' -> CMA expr-list | lambda
 braceblock -> LBR var-decl-list stmts RBR
 var-decl-list -> var-decl SEMI var-decl-list | lambda
 var-decl -> VAR ID type
-type -> non-array-type | non-array-type LB RB
+type -> non-array-type | non-array-type LB num-list RB
+num-list -> NUM | NUM CMA num-list
 non-array-type -> NUMBER | STRING
 stmts -> stmt stmts | lambda
 stmt -> cond | loop | return-stmt SEMI | assign SEMI | func-call SEMI
-assign -> ID EQ expr
+assign -> ID EQ expr | ID LB expr-list RB EQ expr
 loop -> WHILE LP expr RP braceblock
 cond -> IF LP expr RP braceblock | IF LP expr RP braceblock ELSE braceblock
 return-stmt -> RETURN expr
@@ -65,5 +66,7 @@ rel -> sum RELOP sum | sum
 sum -> sum ADDOP term | sum MINUS term | term
 term -> term MULOP neg | neg
 neg -> MINUS neg | factor
-factor -> NUM | LP expr RP | STRING-CONSTANT | ID | func-call";
+factor -> NUM | LP expr RP | STRING-CONSTANT | ID | func-call | array-access
+array-access -> ID LB expr-list RB";
 }
+

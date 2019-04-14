@@ -1,7 +1,139 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 
-enum VarType { NUMBER, STRING , VOID};
+class VarType
+{
+    public readonly string typeString;
+    protected int size = 8;
+    protected VarType(string t)
+    {
+        typeString = t;
+    }
+    public static readonly VarType NUMBER   = new VarType("$number");
+    public static readonly VarType STRING   = new VarType("$string");
+    public static readonly VarType VOID     = new VarType("$void");
+    public static readonly VarType FUNCTION = new VarType("$function");
+    public virtual int sizeOfThisVariable
+    {
+        get { return size; }
+    }
+    public static bool operator == (VarType v1, VarType v2)
+    {
+        if (object.ReferenceEquals(v1, null))
+            return object.ReferenceEquals(v2, null);
+        return v1.Equals(v2);
+    }
+    public static bool operator != (VarType v1, VarType v2)
+    {
+        return !(v1 == v2);
+    }
+    public override bool Equals(object obj)
+    {
+        VarType v2 = (obj as VarType);
+        if (v2 == null)
+            return false;
+        return this.typeString == v2.typeString;
+    }
+    public override int GetHashCode()
+    {
+        return typeString.GetHashCode();
+    }
+}
+
+class ArrayVarType : VarType
+{
+    public readonly VarType baseType;
+    public readonly List<int> arrayDimensions;
+    public ArrayVarType(VarType baseType, List<int> dims) : base("$array")
+    {
+        this.baseType = baseType;
+        this.arrayDimensions = dims;
+        int num = 1;
+        if(arrayDimensions != null)
+        {
+            foreach (var i in arrayDimensions)
+                num *= i;
+        }
+        this.size = baseType.sizeOfThisVariable * num;
+    }
+    public static bool operator == (ArrayVarType v1, ArrayVarType v2)
+    {
+        if (object.ReferenceEquals(v1, null))
+            return object.ReferenceEquals(v2, null);
+        return v1.Equals(v2);
+    }
+    public static bool operator != (ArrayVarType v1, ArrayVarType v2)
+    {
+        return !(v1 == v2);
+    }
+    public override bool Equals(object obj)
+    {
+        ArrayVarType v2 = (obj as ArrayVarType);
+        if (v2 == null)
+            return false;
+        return baseType.Equals(v2.baseType) && this.arrayDimensions.SequenceEqual(v2.arrayDimensions);
+    }
+    public override int GetHashCode()
+    {
+        int hashNum = 0;
+        hashNum += baseType.GetHashCode();
+        foreach (var i in arrayDimensions)
+            hashNum += i.GetHashCode();
+        return hashNum;
+    }
+}
+
+
+class FuncVarType : VarType
+{
+    public readonly List<VarType> ArgTypes = new List<VarType>();
+    public readonly VarType RetType;
+    public FuncVarType( List<VarType> argtypes, VarType rettype) : base("$function")
+    {
+        this.RetType    = rettype;
+        this.ArgTypes   = argtypes;
+    }
+    public static bool operator ==(FuncVarType v1, FuncVarType v2)
+    {
+        if (object.ReferenceEquals(v1, null))
+            return object.ReferenceEquals(v2, null);
+        return v1.Equals(v2);
+    }
+    public static bool operator !=(FuncVarType v1, FuncVarType v2)
+    {
+        return !(v1 == v2);
+    }
+    public override bool Equals(object obj)
+    {
+        FuncVarType v2 = (obj as FuncVarType);
+        if (v2 == null)             return false;
+        if (!base.Equals(v2))       return false;
+        if (RetType != v2.RetType)  return false;
+
+        return ArgTypes.SequenceEqual(v2.ArgTypes); //using System.Linq
+    }
+    public override int GetHashCode()
+    {
+        int hashVal = 0;
+        foreach (VarType v in ArgTypes)
+            hashVal += v.GetHashCode();
+        return (hashVal += RetType.GetHashCode());
+    }
+}
+
+class VarInfo
+{
+    public string Label; //assembly label for this var
+    public bool isGlobal;
+    public VarType VType; //"Type" is a builtin name
+    public VarInfo(VarType t, string label, bool isGlobal)
+    {
+        this.VType = t;
+        this.Label = label;
+        this.isGlobal = isGlobal;
+    }
+}
 
 class SymbolTable //done
 {
@@ -30,6 +162,10 @@ class SymbolTable //done
         get { return scopes.Count; }
     }
     public bool ContainsInCurrentScope(string varname)
+    {
+        return scopes[scopes.Count - 1][varname] != null;
+    }
+    public bool ContainsInCurrentScopes(string varname)
     {
         for(int i = scopes.Count - 1; i >= 0; i--)
         {
@@ -61,18 +197,7 @@ class SymbolTable //done
     }
 }
 
-class VarInfo //done
-{
-    public string Label; //assembly label for this var
-    public VarType VType; //"Type" is a builtin name
-    public VarInfo(VarType t, string label)
-    {
-        this.VType = t;
-        this.Label = label;
-    }
-}
-
-class Scope //done
+class Scope
 {
     public Dictionary<string, VarInfo> data = new Dictionary<string, VarInfo>();
     public VarInfo this[string varname]
