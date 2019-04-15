@@ -43,7 +43,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="Assembly Files\Assembler.cs" />
+    <Compile Include="Assembly Files\AssemblyFuncs.cs" />
+    <Compile Include="Assembly Files\ExeTools.cs" />
+    <Compile Include="CompilerFunctions and Items\CompilerFuncs.cs" />
+    <Compile Include="CompilerFunctions and Items\CompilerItems.cs" />
+    <Compile Include="Compiler\Compiler.cs" />
+    <Compile Include="Compiler\Compute.cs" />
+    <Compile Include="Compiler\Producer.cs" />
+    <Compile Include="DotFuncFiles and Parsers\DotOut.cs" />
+    <Compile Include="DotFuncFiles and Parsers\GLR.cs" />
+    <Compile Include="DotFuncFiles and Parsers\LL%280%29.cs" />
+    <Compile Include="DotFuncFiles and Parsers\SLR%281%29.cs" />
+    <Compile Include="Grammar\GrammarData.cs" />
+    <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
