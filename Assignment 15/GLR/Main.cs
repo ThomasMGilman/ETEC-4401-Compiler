@@ -31,7 +31,7 @@ namespace Test {
                 ifile = args[1];
             }
             
-            var root = Compiler.compile(gfile,ifile);
+            var root = Compiler.parseTree(gfile,ifile, 2);
             dumpTree("tree.dot",root);
         }
 

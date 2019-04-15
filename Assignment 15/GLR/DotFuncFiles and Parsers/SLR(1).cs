@@ -4,24 +4,20 @@ using System.Linq;
 
 public class SLR_1_ : CompilerFuncs
 {
-    List<Production> productions;
-    HashSet<string> nullables;
     Dictionary<string, Production> productionDict;
     Dictionary<string, HashSet<string>> Follows;
     List<Token> tokens;
     private List<State> states;
-    public SLR_1_(Dictionary<string, Production> prodDict, List<Production> prods, HashSet<string> nulls, Dictionary<string, HashSet<string>> follow, List<Token> t, ref List<Dictionary<string, Tuple<string, int, string>>> LRTable, ref TreeNode productionTreeRoot, ref State startState, bool computeTree)
+    public SLR_1_(Dictionary<string, Production> prodDict, string firstProduction, Dictionary<string, HashSet<string>> follow, List<Token> t, ref List<Dictionary<string, Tuple<string, int, string>>> LRTable, ref TreeNode productionTreeRoot, ref State startState, bool computeTree)
     {
-        productions = prods;
         productionDict = prodDict;
-        nullables = nulls;
         Follows = follow;
         tokens = t;
 
         //create Start State
         states = new List<State>();
         startState = new State(0);
-        LR0Item start = new LR0Item("S'", new List<string> { "program" }, 0);
+        LR0Item start = new LR0Item("S'", new List<string> { firstProduction }, 0);
         LRTable = new List<Dictionary<string, Tuple<string, int, string>>>();
         Dictionary<HashSet<LR0Item>, State> seen = new Dictionary<HashSet<LR0Item>, State>(new EQ());
         Stack<State> todo = new Stack<State>();
@@ -42,9 +38,9 @@ public class SLR_1_ : CompilerFuncs
         
         //printSeenMap(seen);
         computeSLRTable(ref LRTable);
-        //printLRTable(LRTable);
+        //printSLRTable(LRTable);
         //printTokens(t);
-        //LRdot dot = new LRdot(startState, grammarFile);
+        //LRdot dot = new LRdot(startState, "gFile.dot");
         if (computeTree)
             SLR_Parse(LRTable, ref productionTreeRoot);
     }
@@ -218,12 +214,17 @@ public class SLR_1_ : CompilerFuncs
                             stateStack.Pop();
                             n.Children.Insert(0, nodeStack.Pop());
                         }
-                        //Console.WriteLine("Reduced To: {0}, {1}", action.Item3, LRTable[stateStack.Peek()][action.Item3].Item2);
+
+                        var nxtAction = "null";
+                        if(LRTable[stateStack.Peek()].ContainsKey(action.Item3))
+                            nxtAction = LRTable[stateStack.Peek()][action.Item3].Item2.ToString();
+
+                        //Console.WriteLine("Reduced To: {0}, {1}", action.Item3,  nxtAction);
                         if (action.Item3 == "program" || action.Item3 == "S'")
                         {
                             if (tokenIndex == tokens.Count && t == "$")
                             {
-                                //Console.WriteLine("ROOT: {0}", n.Symbol);
+                                Console.WriteLine("ROOT: {0}", n.Symbol);
                                 productionTreeRoot = n;
                                 return;
                             }

@@ -4,16 +4,21 @@ using System.Linq;
 
 public class Node
 {
-    public State data;
-    public int Value;
-    public Node nextNode;
-    public Tuple<string, Node, int, string> how;
+    public State data = null;
+    public int Value = 0;
+    public Node nextNode = null;
+    public Tuple<string, Node, int, string> how = null;
     public Node(State state, Tuple<string, Node, int, string> action, Node nxtNode)
     {
         data = state;
         Value = state.index;
         how = action;
         nextNode = nxtNode;
+    }
+    public void printNode()
+    {
+        Console.Write("Action: {0} -> ", how);
+        data.printItems();
     }
 }
 
@@ -30,7 +35,7 @@ public class StackAsList
         => top.Value;
     public Node getTop()                    
         => top;
-    public StackAsList copyList()           
+    public StackAsList clone()           
         => new StackAsList(top);
     public KeyValuePair<Node, Node> key()   
         => new KeyValuePair<Node, Node>(top, top.nextNode);
@@ -39,25 +44,21 @@ public class StackAsList
 
 public class GLR : CompilerFuncs
 {
-    List<Production> productions;
     List<Token> tokens;
-    HashSet<string> nullables;
     Dictionary<string, Production> productionDict;
     Dictionary<string, HashSet<string>> Follows;
     private Dictionary<HashSet<LR0Item>, State> seen;
     private List<State> states;
-    public GLR(Dictionary<string, Production> prodDict, List<Production> prods, HashSet<string> nulls, Dictionary<string, HashSet<string>> follow, List<Token> t, ref List<Dictionary<string, List<Tuple<string, int, string>>>> parseTable, ref TreeNode productionTreeRoot, ref State startState, bool computeTree)
+    public GLR(Dictionary<string, Production> prodDict, string firstProduction, Dictionary<string, HashSet<string>> follow, List<Token> t, ref List<Dictionary<string, List<Tuple<string, int, string>>>> parseTable, ref TreeNode productionTreeRoot, ref State startState, bool computeTree)
     {
-        productions = prods;
         productionDict = prodDict;
-        nullables = nulls;
         Follows = follow;
         tokens = t;
 
         //create Start State
         states          = new List<State>();
         startState      = new State(0);
-        LR0Item start   = new LR0Item("S'", new List<string> { "program" }, 0);
+        LR0Item start   = new LR0Item("S'", new List<string> { firstProduction }, 0);
         parseTable      = new List<Dictionary<string, List<Tuple<string, int, string>>>>();
         seen            = new Dictionary<HashSet<LR0Item>, State>(new EQ());
         Stack<State> todo = new Stack<State>();
@@ -76,11 +77,11 @@ public class GLR : CompilerFuncs
             addStates(Q, transitions, seen, todo);
         }
 
-        //printSeenMap(seen);
+        printSeenMap(seen);
         computeGLRTable(ref parseTable);
-        //printLRTable(LRTable);
-        //printTokens(t);
-        //LRdot dot = new LRdot(startState, grammarFile);
+        printGLRTable(parseTable);
+        printTokens(t);
+        LRdot dot = new LRdot(startState, "gFile.dot");
         if (computeTree)
             GLR_Parse(parseTable, ref productionTreeRoot);
     }
@@ -223,6 +224,20 @@ public class GLR : CompilerFuncs
             parseTable.Add(row);
         }
     }
+
+    private void printStackAsList(List<StackAsList> stack)
+    {
+        foreach (StackAsList s in stack)
+        {
+            Node node = s.getTop();
+            while (node != null)
+            {
+                node.printNode();
+                node = node.nextNode;
+            }
+        }
+    }
+
     private void GLR_Parse(List<Dictionary<string, List<Tuple<string, int, string>>>> parseTable, ref TreeNode productionTreeRoot)
     {
         List<StackAsList> stacks        = new List<StackAsList>();
@@ -238,56 +253,40 @@ public class GLR : CompilerFuncs
         stateStack.Push(0);
 
         bool notDone = true;
-        while(notDone)
+        try
         {
-            string sym;
-            if (tokenIndex == tokens.Count)
-                sym = "$";
-            else
-                sym = tokens[tokenIndex].Symbol;
-
-            int stackIndex = 0;
-            if (stacks.Count == 0)
-                throw new Exception("ERROR!! Stack is empty!!");
-            while(stackIndex < stacks.Count)
+            while (notDone)
             {
-                StackAsList stk = stacks[stackIndex];
-                int stateNumber = stk.getTopValue();
-                foreach(Tuple<string, int, string> action in parseTable[stateNumber][sym])
+                string sym;
+                if (tokenIndex == tokens.Count)
+                    sym = "$";
+                else
+                    sym = tokens[tokenIndex].Symbol;
+
+                int stackIndex = 0;
+                Node refrence;
+                if (stacks.Count == 0)
+                    throw new Exception("ERROR!! Stack is empty!!");
+                Console.WriteLine("Token{0} out of {1}: {2}", tokenIndex, tokens.Count, sym);
+                while (stackIndex < stacks.Count) //reduce
                 {
-                    Node refrence;
-                    if (action.Item1 == "S")//shift
+                    StackAsList stk = stacks[stackIndex];
+                    refrence = stk.getTop();
+                    int stateNumber = stk.getTopValue();
+                    foreach (Tuple<string, int, string> action in parseTable[stateNumber][sym])
                     {
-                        nextStacks = new List<StackAsList>();
-                        foreach(StackAsList stack in stacks)
+                        if (action.Item1 == "R")
                         {
-                            refrence = stk.getTop();
-                            foreach (Tuple<string, int, string> nxtAction in parseTable[stack.getTopValue()][sym])
+                            Console.WriteLine("Action: {0}", action);
+                            int numPop = action.Item2;
+                            string tSym = action.Item3;
+
+                            StackAsList stk2 = stk.clone();
+                            stk2.pop(numPop);                               //reduce number of items
+                            stk2.push(states[stk2.getTopValue()], new Tuple<string, Node, int, string>("R", refrence, numPop, sym));
+                            if (!active.Contains(stk2.key()))
                             {
-                                StackAsList stk2 = stack.copyList();
-                                if (nxtAction.Item1 == "S") //shift operation
-                                    stk2.push(states[nxtAction.Item2], new Tuple<string, Node, int, string>("S", refrence, tokenIndex, ""));
-                                nextStacks.Add(stk2);
-                            }
-                        }
-                        tokenIndex++;
-                        stacks = nextStacks;
-                    }
-                    else                    //Reduce
-                    {
-                        refrence            = stk.getTop();
-                        int numPop          = action.Item2;
-                        string tSym         = action.Item3;
-                        StackAsList tmp = stk.copyList();
-                        tmp.pop(numPop);                               //reduce number of items
-                        foreach(Tuple<string, int, string> nxtAction in parseTable[tmp.getTopValue()][tSym])
-                        {
-                            int newState = nxtAction.Item2;
-                            StackAsList stk2 = tmp.copyList();
-                            stk2.push(states[nxtAction.Item2], new Tuple<string, Node, int, string>("R", refrence, numPop, sym));
-                            if(!active.Contains(stk2.key()))
-                            {
-                                if(nxtAction.Item3 == "S'" || nxtAction.Item3 == "program")
+                                if (action.Item3 == "S'" || action.Item3 == "program")
                                 {
                                     if (tokenIndex == tokens.Count && sym == "$")
                                     {
@@ -295,18 +294,60 @@ public class GLR : CompilerFuncs
                                         notDone = false;
                                         return;
                                     }
-
                                 }
-                                active.Add(stk2.getTop(), stk2.getTop().nextNode);
-                                nextStacks.Add(stk2);
-                                stacks.Add(stk2);
+                                else
+                                {
+                                    active.Add(stk2.getTop(), stk2.getTop().nextNode);
+                                    nextStacks.Add(stk2);
+                                    stacks.Add(stk2);
+                                }
                             }
                         }
+                        else if(action.Item1 == "S")
+                        {
+                            if (!active.Contains(stk.key()))
+                            {
+                                nextStacks.Add(stk);
+                                active.Add(stk.getTop(), stk.getTop().nextNode);
+                            }
+                        } 
                     }
+                    stackIndex++;
                 }
-                stackIndex++;
+                stackIndex = 0;
+                var newNextStack = new List<StackAsList>();
+                while (stackIndex < nextStacks.Count) //shift
+                {
+                    StackAsList stk = nextStacks[stackIndex];
+                    int stateNumber = stk.getTopValue();
+                    foreach (Tuple<string, int, string> action in parseTable[stateNumber][sym])
+                    {
+                        if (action.Item1 == "S")//shift
+                        {
+                            refrence = stk.getTop();
+                            Console.WriteLine("\tNextAction: {0}", action);
+                            StackAsList stk2 = stk.clone();
+                            stk2.push(states[action.Item2], new Tuple<string, Node, int, string>("S", refrence, tokenIndex, ""));
+                            newNextStack.Add(stk2);
+                        }
+                    }
+                    stackIndex++;
+                    stacks = nextStacks;
+                }
+                stacks = newNextStack;
+                nextStacks = new List<StackAsList>();
+                tokenIndex++;
             }
         }
+        catch(Exception e)
+        {
+            Console.WriteLine("--------------------------\nStacks:");
+            printStackAsList(stacks);
+            Console.WriteLine("--------------------------\nNextStacks:");
+            printStackAsList(nextStacks);
+            throw new Exception(e.Message);
+        }
+        
         List<Tuple<Tuple<string, Node, int, string>, Node>> actions = new List<Tuple<Tuple<string, Node, int, string>, Node>>();
         Node N = root.getTop();
         while(N.how != null)

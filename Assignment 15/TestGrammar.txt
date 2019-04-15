@@ -1,10 +1,6 @@
-if -> \bif\b
-= -> =
-x -> \d+
-id -> \w+
-; -> ;
-( -> \(
-) -> \)
+x -> \w+
 
-S -> S stmt | lambda
-stmt -> id ( x ) ; | id = stmt ; | x ;
+
+S -> x Y x | x
+X -> Y
+Y -> Y | S | X

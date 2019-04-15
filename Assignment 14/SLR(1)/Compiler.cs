@@ -947,9 +947,9 @@ public class compiler
 
         computeSLRTable();
 
-        //printSeenMap(seen);
-        //printLRTable();
-        //LRdot dot = new LRdot(startState, grammarFile);
+        printSeenMap(seen);
+        printLRTable();
+        LRdot dot = new LRdot(startState, grammarFile);
         if (this.inputFile != null)
             SLR_Parse();
     }

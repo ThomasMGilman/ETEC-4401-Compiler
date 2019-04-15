@@ -3,14 +3,12 @@
 //ETEC 4401 Compiler
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using System.IO;
 
 public class compiler : CompilerFuncs
 {
     private string grammarFile, inputFile;
     private string[] grammarLines, inputLines;
-    private Regex middle;
     private List<Terminal> terminals;
     private List<Token> tokens;
     private List<Production> productions;
@@ -21,6 +19,7 @@ public class compiler : CompilerFuncs
     private Dictionary<string, HashSet<string>> Follows;
     private Dictionary<string, Dictionary<string, HashSet<string>>> LLTable;
     private List<Dictionary<string, Tuple<string, int, string>>> LRTable;
+    private List<Dictionary<string, List<Tuple<string, int, string>>>> GLRTable;
     private int compilerType;
 
     public compiler(string gFile = null, string inFile = null, int cType = 0)
@@ -30,15 +29,7 @@ public class compiler : CompilerFuncs
         inputFile = inFile;
         compilerType = cType;
         init(grammarFile, inFile);
-        switch (cType)
-        {
-            case (0):               //LL_Grammar
-                LL_0_ produceLL_0 = new LL_0_(productionDict, productions, nullables, tokens, ref LLTable, ref productionTreeRoot, inputFile != null);
-                break;
-            case (1):               //LR_Grammar
-                SLR_1_ produceSLR_1 = new SLR_1_(productionDict, productions, nullables, Follows, tokens, ref LRTable, ref productionTreeRoot, ref startState, inputFile != null);
-                break;
-        }
+        produceTreeRoot();
     }
 
     private void init(string grammarFile, string inputFile)
@@ -46,14 +37,12 @@ public class compiler : CompilerFuncs
         //initiallize all the class globals
 
         grammarLines = grammarFile == null ? GrammarData.data.Split('\n') : File.ReadAllLines(@grammarFile);
-        middle = new Regex(@"->");
         terminals = new List<Terminal>();
         tokens = new List<Token>();
         productions = new List<Production>();
         nullables = new HashSet<string>();
         productionDict = new Dictionary<string, Production>();
         Follows = new Dictionary<string, HashSet<string>>();
-        LLTable = new Dictionary<string, Dictionary<string, HashSet<string>>>();
         symtable = new Dictionary<string, dynamic>();
         productionTreeRoot = null;
         startState = null;
@@ -91,9 +80,26 @@ public class compiler : CompilerFuncs
         {
             if (inputFile == null)
                 throw new Exception("Did not pass a input file to the compiler!!! Can not retrieve TreeRoot as there can not be one!!");
-            LL_0_ produceLL_0 = new LL_0_(productionDict, productions, nullables, tokens, ref LLTable, ref productionTreeRoot, inputFile != null);
+            produceTreeRoot();
         }
         return productionTreeRoot;
+    }
+    public void produceTreeRoot()
+    {
+        switch (compilerType)
+        {
+            case (0):               //LL_Grammar
+                LL_0_ produceLL_0 = new LL_0_(productionDict, productions, nullables, tokens, ref LLTable, ref productionTreeRoot, inputFile != null);
+                break;
+            case (1):               //LR_Grammar
+                SLR_1_ produceSLR_1 = new SLR_1_(productionDict, productions[0].lhs, Follows, tokens, ref LRTable, ref productionTreeRoot, ref startState, inputFile != null);
+                break;
+            case (2):
+                GLR produceGLR = new GLR(productionDict, productions[0].lhs, Follows, tokens, ref GLRTable, ref productionTreeRoot, ref startState, inputFile != null);
+                break;
+            default:
+                throw new Exception("Invalid Grammar Parse type!! Please Specify cType = {0,1,2} = {LL(0), SLR(1), GLR}!! Got cType: " + compilerType);
+        }
     }
     public HashSet<string> getNullables()
     {
@@ -117,25 +123,22 @@ public class compiler : CompilerFuncs
         }
         return Follows;
     }
-    public Dictionary<string, Dictionary<string, HashSet<string>>> getTable()
+    public Dictionary<string, Dictionary<string, HashSet<string>>> getLLTable()
     {
         return LLTable;
     }
-    public State getLR0_DFA()
+    public State getStartState()
     {
         return startState;
     }
-
     public void Interpret()
     {
         Interpret(productionTreeRoot);
     }
-
     public void dumpLR_DFA()
     {
         dumpLR_DFA(startState, grammarFile == null ? "default.txt" : grammarFile, inputFile, compilerType);
     }
-
     public void fullTestPrint()
     {
         printTerminals(terminals);
@@ -165,16 +168,19 @@ public class Compiler
     public static Dictionary<string, Dictionary<string, HashSet<string>>> computeLLTable(string gFile)
     {
         c = new compiler(gFile);
-        return c.getTable();
+        return c.getLLTable();
     }
-    public static TreeNode parse(string gFile, string iFile)
+    /// <summary>
+    /// pass a grammarFile, inputFile, and specify a compilerType if you dont want it to be LL(0) by default.
+    /// compilerTypes : {(0, LL(0)), (1, SLR(1)), (2, GLR)}
+    /// </summary>
+    /// <param name="gFile"></param>
+    /// <param name="iFile"></param>
+    /// <param name="compilerType"></param>
+    /// <returns></returns>
+    public static TreeNode parseTree(string gFile, string iFile, int compilerType = 0)
     {
-        c = new compiler(gFile, iFile);
-        return c.getTree();
-    }
-    public static TreeNode compile(string gFile, string iFile)
-    {
-        c = new compiler(gFile, iFile, 1);
+        c = new compiler(gFile, iFile, compilerType);
         return c.getTree();
     }
     public static void compile(string srcfile, string asmfile, string objfile, string exefile)

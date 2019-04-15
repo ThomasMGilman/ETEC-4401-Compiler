@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
 
 public class CompilerFuncs
 {
@@ -165,7 +165,7 @@ public class CompilerFuncs
                 Console.WriteLine("\t{0} , {1} ::= {2}", nonterminal.Key, terminal.Key, LLTable[nonterminal.Key][terminal.Key].First());
         }
     }
-    public void printLRTable(List<Dictionary<string, Tuple<string, int, string>>> LRTable)
+    public void printSLRTable(List<Dictionary<string, Tuple<string, int, string>>> LRTable)
     {
         int row = 0;
         foreach (Dictionary<string, Tuple<string, int, string>> keyValuePairs in LRTable)
@@ -178,6 +178,21 @@ public class CompilerFuncs
             }
         }
     }
+    public void printGLRTable(List<Dictionary<string, List<Tuple<string, int, string>>>> GLRTable)
+    {
+        int index = 0;
+        foreach(var row in GLRTable)
+        {
+            Console.WriteLine("Row {0}:", index++);
+            foreach(var pair in row)
+            {
+                Console.WriteLine("\tSymbol {0}:", pair.Key);
+                foreach(var action in pair.Value)
+                    Console.WriteLine("\t\t{0}", action);
+            }
+        }
+    }
+
     public void printNumTabs(int tabCount)
     {
         for (int i = 0; i < tabCount; i++)
