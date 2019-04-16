@@ -741,9 +741,10 @@ public class Assembler
             {
                 emit("pop {0}", argRegister(1)); //src
                 emit("mov [{0}], {1}", vinfo.Label, argRegister(0)); //dst
-                makeDouble_and_push(atyp.arrayDimensions.Count.ToString());
+                makeDouble_and_push((atyp.sizeOfThisVariable / 8).ToString());
+                Console.WriteLine("{0} size:{1}, mem:{2}", vname, atyp.sizeOfThisVariable / 8, atyp.sizeOfThisVariable);
                 movRaxTo_xmmRegister("xmm0");
-                emit("movq xmm0, {1}", argRegister(2)); //size
+                emit("movq xmm0, {0}", argRegister(2)); //size
                 doFuncCall("memcpy");
             }
             else
@@ -1192,9 +1193,8 @@ public class Assembler
                 if (vi.VType == VarType.NUMBER || vi.VType == VarType.STRING || atyp != null)
                 {
                     if (atyp != null)
-                        emit("mov rax, {0}", symtable[vname].Label);    //push address
-                    else
-                        emit("mov rax,[{0}]", symtable[vname].Label);   //push value
+                        Console.WriteLine("pushing {0} size:{1}, mem:{2}", vname, atyp.sizeOfThisVariable / 8, atyp.sizeOfThisVariable);
+                    emit("mov rax,[{0}]", symtable[vname].Label);   //push value
                     emit("push rax");
                     type = vi.VType;
                 }
