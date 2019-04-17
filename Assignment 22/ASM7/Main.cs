@@ -47,7 +47,7 @@ namespace Test {
             string objfile = "xyz.o";
             string exefile = "xyz.exe";
 
-            var inputfile = "inputs2.txt";
+            var inputfile = "inputs.txt";
             Console.WriteLine("Working directory: " + Environment.CurrentDirectory);
             Console.WriteLine("Reading inputs from " + inputfile);
 
@@ -221,7 +221,7 @@ namespace Test {
             }
 
             Console.WriteLine("All OK!");
-            //Console.ReadLine();
+            Console.ReadLine();
         }
 
         static void prettyprint(string x){
