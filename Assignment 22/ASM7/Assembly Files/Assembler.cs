@@ -13,7 +13,7 @@ public class Assembler
     static SymbolTable symtable;
     static int labelCounter;
     int cType;
-    static string[] externs = { "fopen", "fclose", "fscanf", "fprintf", "printf", "scanf", "fflush", "memcpy"};
+    static string[] externs = { "fopen", "fclose", "fscanf", "fprintf", "printf", "scanf", "fflush", "memcpy", "abort"};
 
     public Assembler(TreeNode root, int compilerType)
     {
@@ -59,6 +59,8 @@ public class Assembler
         emit("db 0");
         emit("fmt:");
         emit("db \"%s\", 10, 0");
+        emit("arrayMismatch:");
+        emit("db \"Array's Sizes dont match!!\", 0");
     }
 
     private void prologueCode()
@@ -732,14 +734,13 @@ public class Assembler
         if (childrenCount == 3)         //Scalar assignment
         {
             var atyp = t as ArrayVarType;
-            if (vinfo.VType != t)
-                throw new Exception("Error!! Type Mistmatch: " + vinfo.VType + "!=" + t);
-            if (vinfo.VType as ArrayVarType != null && atyp == null)
+            var btyp = vinfo.VType as ArrayVarType;
+            if ((btyp != null && atyp == null) || (atyp != null && btyp == null))
                 throw new Exception("Error!! Can not assign array to val!!");
 
-            if (atyp != null)
+            if (atyp != null && btyp != null)
             {
-                if (atyp.sizeOfThisVariable == (vinfo.VType as ArrayVarType).sizeOfThisVariable)
+                if (atyp.sizeOfThisVariable == btyp.sizeOfThisVariable)
                 {
                     emit("pop {0} ", argRegister(1)); //src
                     if (vinfo.isGlobal)
@@ -750,15 +751,27 @@ public class Assembler
                         emit("mov {0}, rax ", argRegister(0)); //dst
                     }
                     emit("mov {0}, {1} ", argRegister(2), atyp.sizeOfThisVariable); //size
-                    Console.WriteLine("{0} size:{1}, mem:{2}", vname, atyp.sizeOfThisVariable / 8, atyp.sizeOfThisVariable);
+                    Console.WriteLine("{0} size:{1}, mem:{2}", "A", atyp.sizeOfThisVariable / 8, atyp.sizeOfThisVariable);
+                    Console.WriteLine("{0} size:{1}, mem:{2}", "B", btyp.sizeOfThisVariable / 8, btyp.sizeOfThisVariable);
                     doFuncCall("memcpy");
                 }
                 else
-                    throw new Exception("ERROR!! Cannot Assign to a array of different size!!");
-                
+                {
+                    emit("mov {0}, pcts", argRegister(0));
+                    emit("mov rax, 1");
+                    emit("mov {0}, {1}", argRegister(1), "arrayMismatch");
+                    doFuncCall("printf");
+                    emit("mov {0}, 0", argRegister(0));
+                    doFuncCall("fflush");
+                }
+                //throw new Exception("ERROR!! Cannot Assign to a array of different size!!");
+
             }
             else
             {
+                if (vinfo.VType != t)
+                    throw new Exception("Error!! Type Mistmatch: " + vinfo.VType + "!=" + t);
+
                 emit("pop rax");    //pop from expr eval earlier
                 emit("mov [{0}], rax", vinfo.Label);
             }
@@ -1231,7 +1244,27 @@ public class Assembler
                 if (vinfo == null)
                     throw new Exception("Error!!! Trying to access undeclared variable: "+vname);
 
+                string lbl1 = label(), lbl2 = label();
                 putArrayAddressInRcx(vinfo, n.Children[0]);
+                emit("mov rax, [rcx]");                                             //get address of access
+                emit("lea rbx, [{0}]", vinfo.Label);                                //get address start
+                emit("sub rax, rbx");                                               //get array access
+                emit("mov rdx, {0}", vinfo.VType.sizeOfThisVariable);
+                emit("movq xmm0, rdx");
+                emit("movq xmm1, rax");
+                emit("cmpnltsd xmm1, xmm0");                                        //check array access >= arraySize
+                emit("movq rax, xmm1");
+                emit("cmp rax, 0");                                                 //is it >= returns 0 as in it is >=
+                emit("jne {0}", lbl1);                                              //do next check
+                exit();
+                emit("{0}:", lbl1);
+                emit("mov rax, [rcx]");                                             //get address of access
+                emit("lea rbx, [{0}]", vinfo.Label);                                //get address start
+                emit("sub rax, rbx");                                               //get array access
+                emit("test rax, rax");                                              //Test if value is signed
+                emit("jns {0}",lbl2);
+                exit();
+                emit("{0}:", lbl2);
                 emit("mov rax, [rcx]");
                 emit("push rax");
                 type = (vinfo.VType as ArrayVarType).baseType;
@@ -1373,6 +1406,10 @@ public class Assembler
                 expectations += "and ";
         }
         throw new Exception("ICE!!! Expected "+expectations+" Recieved:" + sym);
+    }
+    private void exit()
+    {
+        doFuncCall("abort");
     }
     private static string label()
     {
