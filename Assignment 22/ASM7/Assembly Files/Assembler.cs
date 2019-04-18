@@ -740,6 +740,8 @@ public class Assembler
 
             if (atyp != null && btyp != null)
             {
+                Console.WriteLine("{0} size:{1}, mem:{2}", "A", atyp.sizeOfThisVariable / 8, atyp.sizeOfThisVariable);
+                Console.WriteLine("{0} size:{1}, mem:{2}", "B", btyp.sizeOfThisVariable / 8, btyp.sizeOfThisVariable);
                 if (atyp.sizeOfThisVariable == btyp.sizeOfThisVariable)
                 {
                     emit("pop {0} ", argRegister(1)); //src
@@ -751,8 +753,6 @@ public class Assembler
                         emit("mov {0}, rax ", argRegister(0)); //dst
                     }
                     emit("mov {0}, {1} ", argRegister(2), atyp.sizeOfThisVariable); //size
-                    Console.WriteLine("{0} size:{1}, mem:{2}", "A", atyp.sizeOfThisVariable / 8, atyp.sizeOfThisVariable);
-                    Console.WriteLine("{0} size:{1}, mem:{2}", "B", btyp.sizeOfThisVariable / 8, btyp.sizeOfThisVariable);
                     doFuncCall("memcpy");
                 }
                 else
@@ -1246,25 +1246,25 @@ public class Assembler
 
                 string lbl1 = label(), lbl2 = label();
                 putArrayAddressInRcx(vinfo, n.Children[0]);
-                emit("mov rax, [rcx]");                                             //get address of access
-                emit("lea rbx, [{0}]", vinfo.Label);                                //get address start
-                emit("sub rax, rbx");                                               //get array access
-                emit("mov rdx, {0}", vinfo.VType.sizeOfThisVariable);
-                emit("movq xmm0, rdx");
-                emit("movq xmm1, rax");
-                emit("cmpnltsd xmm1, xmm0");                                        //check array access >= arraySize
-                emit("movq rax, xmm1");
-                emit("cmp rax, 0");                                                 //is it >= returns 0 as in it is >=
-                emit("jne {0}", lbl1);                                              //do next check
-                exit();
-                emit("{0}:", lbl1);
-                emit("mov rax, [rcx]");                                             //get address of access
-                emit("lea rbx, [{0}]", vinfo.Label);                                //get address start
-                emit("sub rax, rbx");                                               //get array access
-                emit("test rax, rax");                                              //Test if value is signed
-                emit("jns {0}",lbl2);
-                exit();
-                emit("{0}:", lbl2);
+                //emit("mov rax, [rcx]");                                             //get address of access
+                //emit("lea rbx, [{0}]", vinfo.Label);                                //get address start
+                //emit("sub rax, rbx");                                               //get array access
+                //emit("mov rdx, {0}", vinfo.VType.sizeOfThisVariable);
+                //emit("movq xmm0, rdx");
+                //emit("movq xmm1, rax");
+                //emit("cmpnltsd xmm1, xmm0");                                        //check array access >= arraySize
+                //emit("movq rax, xmm1");
+                //emit("cmp rax, 0");                                                 //is it >= returns 0 as in it is >=
+                //emit("jne {0}", lbl1);                                              //do next check
+                //exit();
+                //emit("{0}:", lbl1);
+                //emit("mov rax, [rcx]");                                             //get address of access
+                //emit("lea rbx, [{0}]", vinfo.Label);                                //get address start
+                //emit("sub rax, rbx");                                               //get array access
+                //emit("test rax, rax");                                              //Test if value is signed
+                //emit("jns {0}",lbl2);
+                //exit();
+                //emit("{0}:", lbl2);
                 emit("mov rax, [rcx]");
                 emit("push rax");
                 type = (vinfo.VType as ArrayVarType).baseType;
