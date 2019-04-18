@@ -80,7 +80,7 @@ namespace ExeTools
                     break;
                 case OS.WIN:
                     var inp = String.Format(@"
-""c:\program files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"" 
+""c:\program files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvars64.bat"" 
 cd ""{0}""
 link ""{1}"" ""/OUT:{2}"" /SUBSYSTEM:CONSOLE /LARGEADDRESSAWARE:NO /nologo msvcrt.lib legacy_stdio_definitions.lib",
                         Directory.GetCurrentDirectory(), objfile, exefile);

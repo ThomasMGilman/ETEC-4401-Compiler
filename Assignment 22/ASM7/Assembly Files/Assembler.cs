@@ -739,13 +739,23 @@ public class Assembler
 
             if (atyp != null)
             {
-                emit("pop {0}", argRegister(1)); //src
-                emit("mov [{0}], {1}", vinfo.Label, argRegister(0)); //dst
-                makeDouble_and_push((atyp.sizeOfThisVariable / 8).ToString());
-                Console.WriteLine("{0} size:{1}, mem:{2}", vname, atyp.sizeOfThisVariable / 8, atyp.sizeOfThisVariable);
-                movRaxTo_xmmRegister("xmm0");
-                emit("movq xmm0, {0}", argRegister(2)); //size
-                doFuncCall("memcpy");
+                if (atyp.sizeOfThisVariable == (vinfo.VType as ArrayVarType).sizeOfThisVariable)
+                {
+                    emit("pop {0} ", argRegister(1)); //src
+                    if (vinfo.isGlobal)
+                        emit("mov {0}, {1}", argRegister(0), vinfo.Label); //dst
+                    else
+                    {
+                        emit("lea rax, [{0}]", vinfo.Label);
+                        emit("mov {0}, rax ", argRegister(0)); //dst
+                    }
+                    emit("mov {0}, {1} ", argRegister(2), atyp.sizeOfThisVariable); //size
+                    Console.WriteLine("{0} size:{1}, mem:{2}", vname, atyp.sizeOfThisVariable / 8, atyp.sizeOfThisVariable);
+                    doFuncCall("memcpy");
+                }
+                else
+                    throw new Exception("ERROR!! Cannot Assign to a array of different size!!");
+                
             }
             else
             {
@@ -1193,8 +1203,16 @@ public class Assembler
                 if (vi.VType == VarType.NUMBER || vi.VType == VarType.STRING || atyp != null)
                 {
                     if (atyp != null)
+                    {
                         Console.WriteLine("pushing {0} size:{1}, mem:{2}", vname, atyp.sizeOfThisVariable / 8, atyp.sizeOfThisVariable);
-                    emit("mov rax,[{0}]", symtable[vname].Label);   //push value
+                        string label = symtable[vname].Label;
+                        if (symtable[vname].isGlobal)
+                            emit("mov rax,{0}", label);
+                        else
+                            emit("lea rax,[{0}]", label);
+                    }
+                    else
+                        emit("mov rax,[{0}]", symtable[vname].Label);   //push value
                     emit("push rax");
                     type = vi.VType;
                 }

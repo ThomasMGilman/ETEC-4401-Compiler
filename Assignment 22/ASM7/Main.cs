@@ -221,7 +221,7 @@ namespace Test {
             }
 
             Console.WriteLine("All OK!");
-            //Console.ReadLine();
+            Console.ReadLine();
         }
 
         static void prettyprint(string x){
