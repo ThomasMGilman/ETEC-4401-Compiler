@@ -62,7 +62,7 @@ public class Assembler
         emit("arrayMismatch:");
         emit("db \"Array's Sizes dont match!!\", 0");
         emit("abortMsg:");
-        emit("db \"Aborted!!!\", 0");
+        emit("db \"Trying to access outside of Array!!!\", 0");
     }
 
     private void prologueCode()
