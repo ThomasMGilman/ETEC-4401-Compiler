@@ -61,6 +61,8 @@ public class Assembler
         emit("db \"%s\", 10, 0");
         emit("arrayMismatch:");
         emit("db \"Array's Sizes dont match!!\", 0");
+        emit("abortMsg:");
+        emit("db \"Aborted!!!\", 0");
     }
 
     private void prologueCode()
@@ -740,8 +742,6 @@ public class Assembler
 
             if (atyp != null && btyp != null)
             {
-                Console.WriteLine("{0} size:{1}, mem:{2}", "A", atyp.sizeOfThisVariable / 8, atyp.sizeOfThisVariable);
-                Console.WriteLine("{0} size:{1}, mem:{2}", "B", btyp.sizeOfThisVariable / 8, btyp.sizeOfThisVariable);
                 if (atyp.sizeOfThisVariable == btyp.sizeOfThisVariable)
                 {
                     emit("pop {0} ", argRegister(1)); //src
@@ -756,16 +756,7 @@ public class Assembler
                     doFuncCall("memcpy");
                 }
                 else
-                {
-                    emit("mov {0}, pcts", argRegister(0));
-                    emit("mov rax, 1");
-                    emit("mov {0}, {1}", argRegister(1), "arrayMismatch");
-                    doFuncCall("printf");
-                    emit("mov {0}, 0", argRegister(0));
-                    doFuncCall("fflush");
-                }
-                //throw new Exception("ERROR!! Cannot Assign to a array of different size!!");
-
+                    exit("arrayMismatch");
             }
             else
             {
@@ -1309,15 +1300,14 @@ public class Assembler
         emit("sub rax, rbx");                                   //get array access
         emit("cmp rax, 0");                                     //check array access greater than start of Array
         emit("jge {0}", lbl);
-        exit();
+        exit("abortMsg");
         emit("{0}:", lbl);
 
         emit("mov rdx, {0}", vinfo.VType.sizeOfThisVariable);
         emit("cmp rax, rdx");                                   //check array access >= arraySize
         emit("jl {0}", lbl1);                                   //do next check
-        exit();
+        exit("abortMsg");
         emit("{0}:", lbl1);
-        //exit();
     }
 
     private void addParametersToSymbolTable(List<string> argNames, List<VarType> argTypes)
@@ -1409,8 +1399,14 @@ public class Assembler
         }
         throw new Exception("ICE!!! Expected "+expectations+" Recieved:" + sym);
     }
-    private void exit()
+    private void exit(string exitMsg)
     {
+        emit("mov {0}, pcts", argRegister(0));
+        emit("mov {0}, {1}", argRegister(1), exitMsg);
+        emit("mov rax, 1");
+        doFuncCall("printf");
+        emit("mov {0}, 0", argRegister(0));
+        doFuncCall("fflush");
         doFuncCall("abort");
     }
     private static string label()
