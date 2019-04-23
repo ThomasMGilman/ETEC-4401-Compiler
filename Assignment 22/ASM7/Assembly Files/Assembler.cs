@@ -1244,27 +1244,8 @@ public class Assembler
                 if (vinfo == null)
                     throw new Exception("Error!!! Trying to access undeclared variable: "+vname);
 
-                string lbl1 = label(), lbl2 = label();
                 putArrayAddressInRcx(vinfo, n.Children[0]);
-                //emit("mov rax, [rcx]");                                             //get address of access
-                //emit("lea rbx, [{0}]", vinfo.Label);                                //get address start
-                //emit("sub rax, rbx");                                               //get array access
-                //emit("mov rdx, {0}", vinfo.VType.sizeOfThisVariable);
-                //emit("movq xmm0, rdx");
-                //emit("movq xmm1, rax");
-                //emit("cmpnltsd xmm1, xmm0");                                        //check array access >= arraySize
-                //emit("movq rax, xmm1");
-                //emit("cmp rax, 0");                                                 //is it >= returns 0 as in it is >=
-                //emit("jne {0}", lbl1);                                              //do next check
-                //exit();
-                //emit("{0}:", lbl1);
-                //emit("mov rax, [rcx]");                                             //get address of access
-                //emit("lea rbx, [{0}]", vinfo.Label);                                //get address start
-                //emit("sub rax, rbx");                                               //get array access
-                //emit("test rax, rax");                                              //Test if value is signed
-                //emit("jns {0}",lbl2);
-                //exit();
-                //emit("{0}:", lbl2);
+
                 emit("mov rax, [rcx]");
                 emit("push rax");
                 type = (vinfo.VType as ArrayVarType).baseType;
@@ -1316,6 +1297,27 @@ public class Assembler
         }
         else
             emit("lea rcx, [rcx*8+{0}]", vinfo.Label);
+
+        checkArrayOutOfBounds(vinfo);
+    }
+
+    private void checkArrayOutOfBounds(VarInfo vinfo)
+    {
+        string lbl = label(), lbl1 = label();
+        emit("mov rax, rcx");                                   //get address of access
+        emit("lea rbx, [{0}]", vinfo.Label);                    //get address start
+        emit("sub rax, rbx");                                   //get array access
+        emit("cmp rax, 0");                                     //check array access greater than start of Array
+        emit("jge {0}", lbl);
+        exit();
+        emit("{0}:", lbl);
+
+        emit("mov rdx, {0}", vinfo.VType.sizeOfThisVariable);
+        emit("cmp rax, rdx");                                   //check array access >= arraySize
+        emit("jl {0}", lbl1);                                   //do next check
+        exit();
+        emit("{0}:", lbl1);
+        //exit();
     }
 
     private void addParametersToSymbolTable(List<string> argNames, List<VarType> argTypes)
