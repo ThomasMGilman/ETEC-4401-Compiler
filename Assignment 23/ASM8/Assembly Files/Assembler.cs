@@ -22,6 +22,7 @@ public class Assembler
         asmCode = new List<string>();
         symtable = new SymbolTable();
         stringPool = new Dictionary<string, string>();
+        structures = new Dictionary<string, StructVarType>();
         labelCounter = 0;
         cType = compilerType;
         programNodeCode(root);
@@ -160,7 +161,7 @@ public class Assembler
         if (n.Children.Count == 0) return;
         structdeclNodeCode(n.Children[0]);
         structdecllistNodeCode(n.Children[1]);
-    }
+    } //DONE
 
     /// <summary>
     /// struct-decl -> STRUCT ID LBR struct-member-decl-list RBR
@@ -176,7 +177,7 @@ public class Assembler
         structmemberdecllistNodeCode(n.Children[3], tmp);
         var vinfo = new StructVarType(name, tmp);
         structures.Add(name, vinfo);
-    }
+    } //DONE
 
     /// <summary>
     /// struct-member-decl-list -> struct-member struct-member-decl-list | struct-member
@@ -192,7 +193,7 @@ public class Assembler
             if (n.Children.Count == 1) return;
             n = n.Children[1];
         }
-    }
+    } //DONE
 
     /// <summary>
     /// struct-member -> ID type SEMI 
@@ -202,7 +203,7 @@ public class Assembler
     {
         name = n.Children[0].Token.Lexeme;
         typeNodeCode(n.Children[1], out type);
-    }
+    } //DONE
 
     /// <summary>
     /// func-decl-list -> func-decl func-decl-list | lambda
@@ -352,7 +353,7 @@ public class Assembler
                 printTypesListInfo(actualTypes);
                 throw new Exception("ERROR!! Function types or count mismatch!!! FuncName: " + fname + " Expected type: " + info.VType.typeString);
             }
-            emit("call {0} ;{1}", symtable[fname].Label, fname);
+            emit("call {0}  ;{1}", symtable[fname].Label, fname);
             int totalSize = 0;
             //pop parameters from the stack
             foreach (var x in actualTypes)
@@ -369,7 +370,7 @@ public class Assembler
         else
             throw new Exception("ERROR!!! Expected Child Count of 1 and builtin-func-call.\nInstead got Count:"+ n.Children.Count +" Symbol: "+ n.Children[0].Symbol);
         
-    }
+    } //DONE
 
     /// <summary>
     /// builtin-func-call -> PRINT LP expr RP | 
@@ -688,7 +689,7 @@ public class Assembler
         }
         else
             type = t1;
-    }
+    } //DONE
 
     /// <summary>
     /// num-list -> NUM | NUM CMA num-list
@@ -716,12 +717,8 @@ public class Assembler
         string sym = n.Children[0].Symbol;
         switch (sym)
         {
-            case "NUMBER":
-                type = VarType.NUMBER;
-                break;
-            case "STRING":
-                type = VarType.STRING;
-                break;
+            case "NUMBER": type = VarType.NUMBER; break;
+            case "STRING": type = VarType.STRING; break;
             case "STRUCT":
                 var sname = n.Children[1].Token.Lexeme;
                 if (!structures.ContainsKey(sname))
@@ -731,7 +728,7 @@ public class Assembler
             default:
                 throw new Exception("ERROR!! Expected type NUMBER, or STRING for non-array-type!! Recieved: " + sym);
         }
-    }
+    } //DONE
 
     /// <summary>
     /// stmts -> stmt stmts | lambda
@@ -783,15 +780,16 @@ public class Assembler
     private void assignNodeCode(TreeNode n)
     {
         string dest;        //to store result
-        int childrenCount = n.Children.Count;
         VarType lhsType;    //type of lhs
         VarType rhsType;    //type of rhs
-        if(childrenCount == 3 || childrenCount == 6)
+
+        int childrenCount = n.Children.Count;
+        if (childrenCount == 3 || childrenCount == 6)
             exprNodeCode(n.Children[n.Children.Count - 1], out rhsType);
         else
             throw new Exception("Error!!! assignment invalid number of nodes!! Children Count: " + n.Children.Count);
 
-        if(n.Children[0].Token.Symbol == "struct-member-access")
+        if(n.Children[0].Symbol == "struct-member-access")
         {
             structMemberAccessNodeCode(n.Children[0], out lhsType);
             dest = "rax";
@@ -864,7 +862,7 @@ public class Assembler
                 throw new Exception("ERROR ICE!!! Type mismatch!!! " + lhsType.typeString + " != " + rhsType.typeString);
             copyStackToVar(dest, lhsType.sizeOfThisVariable);
         }
-    }
+    } //DONE
 
     /// <summary>
     /// loop -> WHILE RP expr RP braceblock
@@ -951,7 +949,7 @@ public class Assembler
             throw new Exception("ERROR ICE!!!Expression did not return back as type NUMBER");
         emit("pop rax");
         epilogueCode(sizeOfVariableInThisBlock);
-    }
+    } //DONE
 
     /// <summary>
     /// expr -> orexp
@@ -1289,21 +1287,10 @@ public class Assembler
                     throw new Exception("ERROR!!! Undeclared Variable: " + vname);
                 }
                 vi = symtable[vname];
-                ArrayVarType atyp = vi.VType as ArrayVarType;
-                if (vi.VType == VarType.NUMBER || vi.VType == VarType.STRING || atyp != null)
+
+                if(vi != null || vi.VType == VarType.STRING || vi.VType == VarType.NUMBER || vi.VType == VarType.STRUCT)
                 {
-                    if (atyp != null)
-                    {
-                        Console.WriteLine("pushing {0} size:{1}, mem:{2}", vname, atyp.sizeOfThisVariable / 8, atyp.sizeOfThisVariable);
-                        string label = symtable[vname].Label;
-                        if (symtable[vname].isGlobal)
-                            emit("mov rax,{0}", label);
-                        else
-                            emit("lea rax,[{0}]", label);
-                    }
-                    else
-                        emit("mov rax,[{0}]", symtable[vname].Label);   //push value
-                    emit("push rax");
+                    copyVarToStack(vi.Label, vi.VType.sizeOfThisVariable);
                     type = vi.VType;
                 }
                 else
@@ -1330,7 +1317,7 @@ public class Assembler
                 type = (vi.VType as ArrayVarType).baseType;
                 break;
             case "struct-member-access":
-                structMemberAccessNodeCode(child, out type);
+                structMemberAccessNodeCode(child, out type);        //leaves address in rax
                 copyVarToStack("rax", type.sizeOfThisVariable);
                 break;
             default:
@@ -1355,14 +1342,14 @@ public class Assembler
             }
             x = x.Children[2];  //ID DOT s-m-a
         }
-        String vname = ids[0];
+        string vname = ids[0]; //this is the struct itself 
         VarInfo vi = symtable[vname];
         if (vi == null)
             throw new Exception("ERROR!!! Undeclared Variable!!! Var: " + vi);
 
         type = vi.VType;
         emit("lea rax, [{0}]", vi.Label);
-        for (int i = 1; i < ids.Count; ++i)
+        for (int i = 1; i < ids.Count; ++i) //go through the structs contents
         {
             StructVarType svtype = (type as StructVarType);
             if (svtype == null)
@@ -1463,7 +1450,7 @@ public class Assembler
             emit("sub rcx, 1");
             emit("jnz {0}", startLoop);
         }
-    }
+    } //DONE
 
     /// <summary>
     /// should copy from end of address to beginning of address
@@ -1496,7 +1483,7 @@ public class Assembler
         int offs = 16;
         for(int i = 0; i < argNames.Count; i++)
         {
-            symtable[argNames[i]] = new VarInfo(argTypes[i], "rbp+" + offs, symtable[argNames[i]].isGlobal);
+            symtable[argNames[i]] = new VarInfo(argTypes[i], "rbp+" + offs, false);
             offs += 8;
         }
     }
