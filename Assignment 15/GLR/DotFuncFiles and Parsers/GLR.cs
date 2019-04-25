@@ -20,6 +20,35 @@ public class Node
         Console.Write("Action: {0} -> ", how);
         data.printItems();
     }
+    public static bool operator ==(Node o1, Node o2)
+    {
+        return Object.Equals(o1, o2);
+    }
+    public static bool operator !=(Node o1, Node o2)
+    {
+        return !(o1 == o2);
+    }
+    public override bool Equals(object obj)
+    {
+        if (obj == null)
+            return false;
+        Node o = obj as Node;
+        if (o == null ||
+            o.how.Item1 != this.how.Item1 ||
+            o.how.Item3 != this.how.Item3 ||
+            o.how.Item4 != this.how.Item4 ||
+            o.Value != this.Value || o.data != this.data)
+            return false;
+        return true;
+    }
+    public override int GetHashCode()
+    {
+        int hash = Value.GetHashCode();
+        if (how.Item1 != null) hash += how.Item1.GetHashCode();
+        if (how.Item3 != null) hash += how.Item3.GetHashCode();
+        if (how.Item4 != null) hash += how.Item4.GetHashCode();
+        return hash;
+    }
 }
 
 public class StackAsList
@@ -37,8 +66,8 @@ public class StackAsList
         => top;
     public StackAsList clone()           
         => new StackAsList(top);
-    public KeyValuePair<Node, Node> key()   
-        => new KeyValuePair<Node, Node>(top, top.nextNode);
+    public KeyValuePair<int, Node> key()   
+        => new KeyValuePair<int, Node>(getTopValue(), top.nextNode);
 }
 
 
@@ -242,7 +271,7 @@ public class GLR : CompilerFuncs
     {
         List<StackAsList> stacks        = new List<StackAsList>();
         List<StackAsList> nextStacks    = new List<StackAsList>();
-        Dictionary<Node, Node> active   = new Dictionary<Node, Node>();
+        Dictionary<int, Node> active   = new Dictionary<int, Node>();
         StackAsList root = null;
 
         stacks.Add(new StackAsList(new Node(states[0], null, null))); //add start state
@@ -297,7 +326,7 @@ public class GLR : CompilerFuncs
                                 }
                                 else
                                 {
-                                    active.Add(stk2.getTop(), stk2.getTop().nextNode);
+                                    active.Add(stk2.getTopValue(), stk2.getTop().nextNode);
                                     nextStacks.Add(stk2);
                                     stacks.Add(stk2);
                                 }
@@ -308,7 +337,7 @@ public class GLR : CompilerFuncs
                             if (!active.Contains(stk.key()))
                             {
                                 nextStacks.Add(stk);
-                                active.Add(stk.getTop(), stk.getTop().nextNode);
+                                active.Add(stk.getTopValue(), stk.getTop().nextNode);
                             }
                         } 
                     }

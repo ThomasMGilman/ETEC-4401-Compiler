@@ -1,0 +1,2123 @@
+
+<tests>
+
+
+<test>
+<output>x=12 y=34</output>
+<returns>0</returns>
+<code>
+<![CDATA[
+
+struct Point {
+    x number;
+    y number;
+}
+
+def main() return number {
+    var p struct Point;
+    p.x = 12;
+    p.y = 34;
+    print("x=");
+    print(p.x);
+    print(" y=");
+    print(p.y);
+    return 0;
+}
+]]>
+</code>
+</test>
+
+
+<test>
+<output>x=123 y=456</output>
+<returns>0</returns>
+<code>
+<![CDATA[
+
+struct Point {
+    x number;
+    y number;
+}
+
+def foo(p struct Point){
+    print("x=");
+    print(p.x);
+    print(" y=");
+    print(p.y);
+}
+
+def main() return number {
+    var p struct Point;
+    p.x = 123;
+    p.y = 456;
+    foo(p);
+    return 0;
+}
+]]>
+</code>
+</test>
+
+
+<test>
+<output>x=123 y=456 z=blah</output>
+<returns>0</returns>
+<code>
+<![CDATA[
+
+struct Point {
+    x number;
+    z string;
+    y number;
+}
+
+def foo(p struct Point){
+    print("x=");
+    print(p.x);
+    print(" y=");
+    print(p.y);
+    print(" z=");
+    print(p.z);
+}
+
+def main() return number {
+    var p struct Point;
+    p.x = 123;
+    p.y = 456;
+    p.z = "blah";
+    foo(p);
+    return 0;
+}
+]]>
+</code>
+</test>
+
+
+
+<test>
+<returns>failure</returns>
+<code>
+<![CDATA[
+
+//<output>100 200 101 201 102 202 103 203 !</output>
+
+struct S {
+    A number[4];
+    B number[4];
+}
+
+def main() return number {
+    var foo struct S;
+    var i number;
+    i=0;
+    while(i<4){
+        foo.A[i] = 100+i;
+        i=i+1;
+    }
+    i=0;
+    while(i<4){
+        foo.B[i] = 200+i;
+        i=i+1;
+    }
+    i=0;
+    while(i<4){
+        print(foo.A[i]);
+        print(" ");
+        print(foo.B[i]);
+        print(" ");
+        i=i+1;
+    }
+    print("!");
+    return 0;
+}
+ 
+]]>
+</code>
+</test>
+
+
+
+
+<test>
+<output>x=12 y=34 x=112 y=134</output>
+<returns>0</returns>
+<code>
+<![CDATA[
+
+struct Point {
+    x number;
+    y number;
+}
+
+def main() return number {
+    var p struct Point;
+    var q struct Point;
+    p.x = 12;
+    p.y = 34;
+    q.x = p.x+100;
+    q.y = p.y+100;
+    print("x=");
+    print(p.x);
+    print(" y=");
+    print(p.y);
+    print(" x=");
+    print(q.x);
+    print(" y=");
+    print(q.y);
+    return 0;
+}
+]]>
+</code>
+</test>
+
+
+
+<test>
+<returns>failure</returns>
+<code>
+<![CDATA[
+
+//<output>100 200 101 201 102 202 103 203 104 204 !</output>
+
+struct Point {
+    x number;
+    y number;
+}
+
+def main() return number {
+    var A struct Point[5];
+    var i number;
+    i=0;
+    while( i < 5 ){
+        A[i].x = 100+i;
+        A[i].y = 200+i;
+        i = i + 1;
+    }
+    i=0;
+    while( i < 5 ){
+        print(A[i].x);
+        print(" ");
+        print(A[i].y);
+        print(" ");
+    }
+    print("!");
+    return 0;
+}
+
+]]>
+</code>
+</test>
+
+
+
+
+
+
+
+
+<test>
+<output>10101111121213131414</output>
+<returns>0</returns>
+<code>
+<![CDATA[
+
+def main() return number {
+    var A number[5];
+    var B number[5];
+    var i number;
+    i=0;
+    while(i<5){
+        A[i]=i+10;
+        i=i+1;
+    }
+    B=A;
+    i=0;
+    while(i<5){
+        print(A[i]);
+        print(B[i]);
+        i=i+1;
+    }
+    return 0;
+}
+]]>
+</code>
+</test>
+
+
+
+
+
+<test>
+<output>x=12 y=34 z=56</output>
+<returns>0</returns>
+<code>
+<![CDATA[
+
+struct Point {
+    x number;
+    y number;
+}
+
+struct Point3 {
+    p2 struct Point;
+    z number;
+}
+
+def main() return number {
+    var p struct Point3;
+    p.p2.x = 12;
+    p.p2.y = 34;
+    p.z = 56;
+    print("x=");
+    print(p.p2.x);
+    print(" y=");
+    print(p.p2.y);
+    print(" z=");
+    print(p.z);
+    return 0;
+}
+]]>
+</code>
+</test>
+
+
+
+<test>
+<returns>100</returns>
+<code>
+<![CDATA[
+def main() return number {
+    var A number[10];
+    A[0]=100;
+    return A[0];
+}
+]]>
+</code>
+</test>
+
+
+<test>
+<returns>100</returns>
+<code>
+<![CDATA[
+
+var A number[10];
+def main() return number {
+    A[0]=100;
+    return A[0];
+}
+]]>
+</code>
+</test>
+
+<test>
+<returns>100</returns>
+<output>100 100</output>
+<code>
+<![CDATA[
+var A number[10];
+def main() return number {
+    A[0]=100;
+    print(A[0]);
+    print(" ");
+    print(A[0]);
+    return A[0];
+}
+
+]]>
+</code>
+</test>
+
+
+<test>
+<returns>120</returns>
+<code>
+<![CDATA[
+def main() return number {
+    var A number[10];
+    A[0]=100;
+    A[1]=20;
+    return A[0]+A[1];
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>123</returns>
+<code>
+<![CDATA[
+def main() return number {
+    var A number[10];
+    A[0]=100;
+    A[1]=20;
+    A[2]=3;
+    return A[0]+A[1]+A[2];
+}
+]]>
+</code>
+</test>
+
+<test>
+<returns>100</returns>
+<output>0 1 2 
+10 11 12 
+20 21 22 
+30 31 32 
+40 41 42 
+</output>
+<code>
+<![CDATA[
+def main() return number {
+    var A number[5,3];
+    var i number;
+    var j number;
+    i=0;
+    while( i < 5 ){
+        j = 0;
+        while( j < 3 ){
+            A[i,j] = i*10+j;
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    i=0;
+    while( i < 5 ){
+        j = 0;
+        while( j < 3 ){
+            print(A[i,j]);
+            print(" ");
+            j = j + 1;
+        }
+        print("\n");
+        i = i + 1;
+    }   
+     
+    return 100;
+}
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<output>1 1 2 3 5 8 13 21 34 55 </output>
+//fibonacci numbers
+<code>
+<![CDATA[
+def main() return number {
+    var A number[10];
+    var i number;
+    A[0]=1;
+    A[1]=1;
+    i=2;
+    while(i<10){
+        A[i] = A[i-1] + A[i-2];
+        i = i+1;
+    }
+    i=0;
+    while(i<10){
+        print(A[i]);
+        print(" ");
+        i=i+1;
+    }
+    return 0;
+}
+]]>
+</code>
+</test>
+
+<test>
+<returns>5</returns>
+<output>1 1 2 3 5 8 13 21 34 55 </output>
+<code>
+<![CDATA[
+//fibonacci numbers
+var A number[10];
+def main() return number {
+    var i number;
+    A[0]=1;
+    A[1]=1;
+    i=2;
+    while(i<10){
+        A[i] = A[i-1] + A[i-2];
+        i = i+1;
+    }
+    i=0;
+    while(i<10){
+        print(A[i]);
+        print(" ");
+        i=i+1;
+    }
+    return A[4];
+}
+]]>
+</code>
+</test>
+
+<test>
+<outputs>Foo * Bar * Baz * Bam * Boom
+</outputs>
+<code>
+<![CDATA[
+def main() return number {
+    var A string[5];
+    var i number;
+    A[0]="Foo";
+    A[1]="Bar";
+    A[2]="Baz";
+    A[3]="Bam";
+    A[4]="Boom";
+    i=0;
+    while(i<5){
+        print(A[i]);
+        if( i < 4 ){
+            print(" * ");
+        }
+        i = i + 1;
+    }
+    print("\n");
+    return 0;
+}
+]]>
+</code>
+</test>
+
+<test>
+<returns>90</returns>
+<code>
+<![CDATA[
+def main() return number {
+    var A number[10];
+    var i number;
+    i=0;
+    while(i<10){
+        A[i] = 2*i;
+        i=i+1;
+    }
+    return foo(A);
+} 
+def foo(A number[10]) return number{
+    var i number;
+    var total number;
+    i=0;
+    total=0;
+    while(i<10){
+        total = total + A[i];
+        i = i + 1;
+    }
+    return total;
+}
+]]>
+</code>
+</test>
+
+
+<test>
+<returns>91</returns>
+<code>
+<![CDATA[
+def main() return number {
+    var A number[10];
+    var i number;
+    i=0;
+    while(i<10){
+        A[i] = 2*i;
+        i=i+1;
+    }
+    return 1+foo(A);
+} 
+def foo(A number[10]) return number{
+    var i number;
+    var total number;
+    i=0;
+    total=0;
+    while(i<10){
+        total = total + A[i];
+        i = i + 1;
+    }
+    return total;
+}
+]]>
+</code>
+</test>
+
+
+<test>
+<returns>100</returns>
+<code>
+<![CDATA[
+
+def main() return number {
+    var A number[10];
+    A[0]=100;
+    return A[0];
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>100</returns>
+<code>
+<![CDATA[
+
+var A number[10];
+def main() return number {
+    A[0]=100;
+    return A[0];
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>100</returns>
+<output>100 100</output>
+<code>
+<![CDATA[
+
+var A number[10];
+def main() return number {
+    A[0]=100;
+    print(A[0]);
+    print(" ");
+    print(A[0]);
+    return A[0];
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>120</returns>
+<code>
+<![CDATA[
+
+def main() return number {
+    var A number[10];
+    A[0]=100;
+    A[1]=20;
+    return A[0]+A[1];
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>123</returns>
+<code>
+<![CDATA[
+
+def main() return number {
+    var A number[10];
+    A[0]=100;
+    A[1]=20;
+    A[2]=3;
+    return A[0]+A[1]+A[2];
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>100</returns>
+<output>0 1 2 
+10 11 12 
+20 21 22 
+30 31 32 
+40 41 42 
+</output>
+<code>
+<![CDATA[
+
+def main() return number {
+    var A number[5,3];
+    var i number;
+    var j number;
+    i=0;
+    while( i < 5 ){
+        j = 0;
+        while( j < 3 ){
+            A[i,j] = i*10+j;
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    i=0;
+    while( i < 5 ){
+        j = 0;
+        while( j < 3 ){
+            print(A[i,j]);
+            print(" ");
+            j = j + 1;
+        }
+        print("\n");
+        i = i + 1;
+    }   
+     
+    return 100;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<output>1 1 2 3 5 8 13 21 34 55 </output>
+<code>
+<![CDATA[
+
+//fibonacci numbers
+def main() return number {
+    var A number[10];
+    var i number;
+    A[0]=1;
+    A[1]=1;
+    i=2;
+    while(i<10){
+        A[i] = A[i-1] + A[i-2];
+        i = i+1;
+    }
+    i=0;
+    while(i<10){
+        print(A[i]);
+        print(" ");
+        i=i+1;
+    }
+    return 0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>5</returns>
+<output>1 1 2 3 5 8 13 21 34 55 </output>
+<code>
+<![CDATA[
+
+//fibonacci numbers
+var A number[10];
+def main() return number {
+    var i number;
+    A[0]=1;
+    A[1]=1;
+    i=2;
+    while(i<10){
+        A[i] = A[i-1] + A[i-2];
+        i = i+1;
+    }
+    i=0;
+    while(i<10){
+        print(A[i]);
+        print(" ");
+        i=i+1;
+    }
+    return A[4];
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<outputs>Foo * Bar * Baz * Bam * Boom
+</outputs>
+<code>
+<![CDATA[
+
+def main() return number {
+    var A string[5];
+    var i number;
+    A[0]="Foo";
+    A[1]="Bar";
+    A[2]="Baz";
+    A[3]="Bam";
+    A[4]="Boom";
+    i=0;
+    while(i<5){
+        print(A[i]);
+        if( i < 4 ){
+            print(" * ");
+        }
+        i = i + 1;
+    }
+    print("\n");
+    return 0;
+}
+
+]]>
+</code>
+</test>
+
+
+<test>
+<returns>42</returns>
+<code>
+<![CDATA[
+
+def main() return number {
+    return 42;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>6</returns>
+
+<code>
+
+<![CDATA[
+
+def foo() return number {
+    var x number;
+    var y number;
+    x = 2;
+    y = 3;
+    return x+y;
+}
+
+def main() return number {
+    return 1+foo();
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>6</returns>
+<code>
+
+<![CDATA[
+
+def foo() return number {
+    var x number;
+    var y number;
+    x = 2;
+    y = 3;
+    return x+y;
+}
+def main() return number {
+    var z number;
+    z = foo();
+    return z+1;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>52</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    //simple addition test
+    var x number;
+    var y number;
+    var z number;
+    x = 42;
+    y = 10;
+    z = x+y;
+    return z;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>failure</returns>
+var x number;
+<code>
+
+<![CDATA[
+
+def main(){
+    var y number;
+    x = 100;
+    y = foo(4);
+    return y+x;
+}
+def foo(y number) return number{
+    var x number;
+    x = 1;
+    return y+x;
+}
+
+]]>
+</code>
+</test>
+
+
+
+<test>
+<returns>105</returns>
+var x number;
+<code>
+
+<![CDATA[
+
+def main(){
+    var x number;
+    var y number;
+    x = 100;
+    y = foo(4);
+    return y+x;
+}
+def foo(y number) return number{
+    var x number;
+    x = 1;
+    return y+x;
+}
+
+]]>
+</code>
+</test>
+
+
+<test>
+<returns>30</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    var y number;
+    var z number;
+    y = 10;
+    z = 20;
+    return f(y,z);
+}
+
+def f(a number, b number ) return number {
+    return a+b;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<output>in f foo done f</output>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    f("foo");
+    return 0;
+}
+def f(a string) {
+    print("in f ");
+    print(a);
+    print(" done f");
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<output>in f fooxbar done fin f bazxbam done f</output>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    f("foo","bar");
+    f("baz","bam");
+    return 0;
+}
+def f(a string, b string) {
+    print("in f ");
+    print(a);
+    print("x");
+    print(b);
+    print(" done f");
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>failure</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    //tries to do addition between string and
+    //number: Should fail
+    var x string;
+    var y number;
+    var z number;
+    
+    x = "foo";
+    y = 42;
+    z = x+y;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>failure</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    //tries to do subtraction between string and
+    //number: Should fail
+    var x string;
+    var y number;
+    var z number;
+    
+    x = "foo";
+    y = 42;
+    z = x-y;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>failure</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    //tries to do addition between string and
+    //string: Should fail
+    var x string;
+    var y string;
+    var z string;
+    
+    x = "foo";
+    y = "bar";
+    z = x+y;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>failure</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    //undeclared variable y
+    var x string;
+    x = "foo";
+    y = 42;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>12</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    var x number;
+    var y number;
+    var z number;
+    var w number;
+    w = -42;
+    x = -w;
+    y = 10;
+    z = x+y;
+    x = z*y/x;
+    return x;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>15</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    var x number;
+    var y number;
+    var z number;
+    var main number;
+    x=4;
+    y=5;
+    z=6;
+    return x+y+z;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>56</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    var x number;
+    var y number;
+    var z number;
+    var w number;
+    var main number;
+    w=1;
+    x=2;
+    y=3;
+    z=4;
+    return x * (y + z ) * (y + w) ;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>55</returns>
+<code>
+
+<![CDATA[
+//fibonacci sequence: Compute fib(10)
+def main() return number {
+    var i number;
+    var v0 number;
+    var v1 number;
+    var tmp number;
+    i=0;
+    v0=0;
+    v1=1;
+    while(i<10){
+        tmp = v0+v1;
+        v1=v0;
+        v0=tmp;
+        i = i+1;
+    }
+    return v0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>55</returns>
+<code>
+
+<![CDATA[
+
+//recursive fibonacci number
+def fib(i number) return number {
+    if( i == 1 or i == 2 ) {
+        return 1;
+    } else {
+        return fib(i-1)+fib(i-2);
+    }
+}
+def main() return number {
+    return fib(10);
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>110</returns>
+<code>
+
+<![CDATA[
+
+//mutual recursion example
+//https://stackoverflow.com/questions/2725038/are-there-any-example-of-mutual-recursion
+def even( n number ) return number {
+    if( n == 0 ) {
+        return 1;
+    } else {
+        return odd( n-1 );
+    }
+}
+def odd( n number ) return number {
+    if( n == 0 ) {
+        return 0;
+    } else {
+        return even( n-1 );
+    }
+}
+def main() return number {
+    return 100*even(12)+10*even(24)+odd(24);
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>6</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 2+4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>3</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 1+2*3-4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 2+2 and 0 or 7*4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 2+2 or 0 or 7*4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 2+2 and 0 and 7*4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 2 or 4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 0 or 4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 4 or 0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 0 or 0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 3 and 5;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 0 and 5;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 5 and 0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 0 and 0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return not 5;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return not 0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return not 2+3;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return not 0+0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>7</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 3+4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>11</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 5+6;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 3+4 and 5+6;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 1 > 2;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 2 > 1;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 1 < 2;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 2 < 1;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 1 == 2;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 1 == 1;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 1 != 2;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 1 != 1;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 1 >= 2;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 2 >= 1;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>nonzero</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 1 <= 2;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 2 <= 1;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>7</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 3 + 4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>3</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 5 - 2;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>12</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 3 * 4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>17</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 3 * 5 + 2;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>17</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 2 + 3*5;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>11</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 3*5-4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>8</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 20-3*4;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>2</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return 12/6;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>3</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+return -(1-4);
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>34</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    if( 12 ){
+        return 34;
+    } else {
+        return 78;
+    }
+    return 56;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>78</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    if( 0 ){
+        return 34;
+    } else {
+        return 78;
+    }
+    return 56;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>56</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    if( 0 ){
+        return 34;
+    } 
+    return 56;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>12</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    while( 123 ){
+        return 12;
+    }
+    return 34;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>34</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    while( 0 ){
+        return 12;
+    }
+    return 34;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>infinite</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    while( 1 ){
+        if( 0 ) {
+            return 1;
+        }
+    }
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>123</returns>
+<output>456</output>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    print(456);
+    return 123;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>123</returns>
+<output>456
+</output>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    print(456);
+    print("\n");
+    return 123;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>123</returns>
+<output>Hello, world!</output>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    print("Hello, world!");
+    return 123;
+}   
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>124</returns>
+<output>Hello
+world!</output>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    print("H");
+    print("ell");
+    print("o\nw");
+    print("orld!");
+    return 124;
+}   
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>23</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    var fp number;
+    fp = open("blah");
+    print("fp is ");
+    print(fp);
+    close(fp);
+    return 23;
+}   
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<output>value is 42</output>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    var fp number;
+    var value number;
+    fp = open("blah");
+    write(fp, 40+2 );
+    close(fp);
+    fp = open("blah");
+    value = read(fp);
+    print("value is ");
+    print(value);
+    close(fp);
+    return 0;
+}   
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<output>value is 42</output>
+<file>
+<name>blah</name>
+<content>42 hello</content>
+</file>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    var fp number;
+    var value number;
+    fp = open("blah");
+    write(fp, 40+2 );
+    write(fp," hello");
+    close(fp);
+    fp = open("blah");
+    value = read(fp);
+    print("value is ");
+    print(value);
+    close(fp);
+    return 0;
+}   
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<file>
+<name>blah1</name>
+<content>this is blah</content>
+</file>
+<file>
+<name>blah2</name>
+<content>flivver</content>
+</file>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    var fp1 number;
+    var fp2 number;
+    fp1 = open("blah1");
+    fp2 = open("blah2");
+    write(fp1, "this is " );
+    write(fp2, "flivve");
+    write(fp1, "blah");
+    write(fp2, "r");
+    close(fp1);
+    close(fp2);
+    return 0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>failure</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    var fp number;
+    fp = open(42);
+    return 0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>failure</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    write("xyz","abc");
+    return 0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>failure</returns>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    read("xyz");
+    return 0;
+}
+
+]]>
+</code>
+</test>
+
+<test>
+<returns>0</returns>
+<input>10
+</input>
+<output>Total: 55
+</output>
+<code>
+
+<![CDATA[
+
+def main() return number {
+    var n number;
+    var total number;
+    var i number;
+    n = input();
+    total = 0;
+    i=0;
+    while( i <= n ){
+        total = total + i;
+        i = i + 1;
+    }
+    print("Total: ");
+    print(total);
+    print("\n");
+    return 0;
+}
+
+]]>
+</code>
+</test>
+
+</tests>
+
