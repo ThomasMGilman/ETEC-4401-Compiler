@@ -8,7 +8,7 @@ using System.Collections.Generic;
 /// </summary>
 public class Assembler
 {
-    static Dictionary<string, string> stringPool;
+    Dictionary<string, string> stringPool;
     static List<string> asmCode;
     static SymbolTable symtable;
     static int labelCounter;
@@ -107,6 +107,8 @@ public class Assembler
             emit("call {0}", foreignFunction);
             emit("add rsp, 32");
         }
+        else
+            emit("call {0}", foreignFunction);
         emit("mov rsp, rbx");
     }
 

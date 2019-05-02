@@ -103,6 +103,8 @@ public class Assembler
             emit("call {0}", foreignFunction);
             emit("add rsp, 32");
         }
+        else
+            emit("call {0}", foreignFunction);
         emit("mov rsp, rbx");
     }
 

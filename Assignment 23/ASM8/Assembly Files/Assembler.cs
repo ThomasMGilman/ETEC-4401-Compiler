@@ -676,7 +676,9 @@ public class Assembler
     {
         VarType t1;
         nonarraytypeNodeCode(n.Children[0], out t1);        //Get type
-        if (n.Children.Count == 4)
+        if(n.Children.Count == 1)
+            type = t1;
+        else
         {
             List<int> dims;
             numlistNodeCode(n.Children[2], out dims);
@@ -687,8 +689,6 @@ public class Assembler
             }
             type = new ArrayVarType(t1, dims);
         }
-        else
-            type = t1;
     } //DONE
 
     /// <summary>
