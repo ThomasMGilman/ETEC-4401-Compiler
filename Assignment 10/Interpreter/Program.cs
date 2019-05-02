@@ -30,5 +30,7 @@ class MainClass
         }
 
         Compiler.interpret(gfile, ifile);
+        Console.WriteLine("OK!");
+        Console.Read();
     }
 }

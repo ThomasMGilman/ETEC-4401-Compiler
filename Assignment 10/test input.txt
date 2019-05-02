@@ -2,3 +2,24 @@ x = 1;
 y = 2;
 if ( x ) { x = 3 ; }
 else { x = y ; };
+
+i=10;
+write(i);
+while( i  ){
+	write(i);
+	i = i - 1;
+} ;
+
+j=0;
+
+if ( i ) {
+    write(42);
+} else {
+    write(43);
+} ;
+
+if ( j ) {
+    write(82);
+} else {
+    write(83);
+} ;

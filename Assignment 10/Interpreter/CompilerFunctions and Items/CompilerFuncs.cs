@@ -317,7 +317,7 @@ public class CompilerFuncs
                 if (children.Count > 0)
                 {
                     string op = children[0].Token.Lexeme;
-                    string v2 = Interpret(children[1]);
+                    var v2 = Interpret(children[1]);
                     if (op == "+")
                         val = (Convert.ToInt32(inherited) + Convert.ToInt32(v2)).ToString();
                     else if (op == "-")
@@ -328,7 +328,7 @@ public class CompilerFuncs
                 }
                 return inherited;
             case "cond": // cond → IF LP e RP LBR S RBR cond’
-                if (Interpret(children[2]) > 0)     // e
+                if (Convert.ToInt32(Interpret(children[2])) > 0)     // e
                     Interpret(children[5]);         // S
                 else
                     Interpret(children[7]);         //cond'
@@ -338,7 +338,7 @@ public class CompilerFuncs
                     Interpret(children[2]);
                 break;
             case "loop":
-                while (Interpret(children[1]) > 0)
+                while (Convert.ToInt32(Interpret(children[1])) > 0)
                     Interpret(children[3]);
                 break;
             default:
